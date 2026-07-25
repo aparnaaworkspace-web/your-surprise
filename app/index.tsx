@@ -33,6 +33,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { getChapter } from '@/components/story/chapter-data';
+import { ChapterTransition } from '@/components/story/chapter-transition';
+import { STORY_FONT_FAMILY } from '@/constants/typography';
+
 const SECRET_CODE = 'dna4';
 const { width, height } = Dimensions.get('window');
 const heartSize = 64;
@@ -77,6 +81,7 @@ export default function StoryEntryScreen() {
   const [showScene, setShowScene] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [homeStep, setHomeStep] = useState<'quote' | 'scene' | 'sky'>('quote');
+  const [transitioningChapterId, setTransitioningChapterId] = useState<number | null>(null);
 
   const loginOpacity = useSharedValue(1);
   const homeOpacity = useSharedValue(1);
@@ -101,6 +106,11 @@ export default function StoryEntryScreen() {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       if (!isHome) {
         return false;
+      }
+
+      if (transitioningChapterId !== null) {
+        setTransitioningChapterId(null);
+        return true;
       }
 
       if (homeStep === 'sky') {
@@ -148,6 +158,7 @@ export default function StoryEntryScreen() {
     quoteOpacity,
     quoteScale,
     skyReveal,
+    transitioningChapterId,
   ]);
 
   useEffect(() => {
@@ -292,6 +303,11 @@ export default function StoryEntryScreen() {
     ],
   }));
 
+  const startChapterTransition = (chapterId: number) => {
+    triggerLightHaptic();
+    setTransitioningChapterId(chapterId);
+  };
+
   return (
     <View style={styles.screen}>
       {!isHome && (
@@ -339,8 +355,24 @@ export default function StoryEntryScreen() {
           </Animated.View>
 
           <Animated.View pointerEvents={isUnlocked ? 'auto' : 'none'} style={[styles.absolute, skyStyle]}>
-            <ChapterSky />
+            <ChapterSky
+              activeChapterId={transitioningChapterId}
+              onSelectChapter={startChapterTransition}
+            />
           </Animated.View>
+
+          {transitioningChapterId !== null && getChapter(transitioningChapterId) && (
+            <ChapterTransition
+              onComplete={() => {
+                const chapterId = transitioningChapterId;
+                setTransitioningChapterId(null);
+                router.push(`/chapter/${chapterId}` as never);
+              }}
+              originLeftPercent={chapterStars.find((star) => star.id === transitioningChapterId)?.left ?? 50}
+              originTopPercent={chapterStars.find((star) => star.id === transitioningChapterId)?.top ?? 50}
+              quote={getChapter(transitioningChapterId)?.quote ?? ''}
+            />
+          )}
         </Animated.View>
       )}
     </View>
@@ -578,7 +610,14 @@ function RainDrop({
   return <Animated.View style={[styles.rainDrop, { left: `${left}%`, height: length }, style]} />;
 }
 
-function ChapterSky() {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function LegacyChapterSky({
+  activeChapterId,
+  onSelectChapter,
+}: {
+  activeChapterId: number | null;
+  onSelectChapter: (chapterId: number) => void;
+}) {
   return (
       <LinearGradient
         colors={['#071B33', '#163C69', '#0A2342']}
@@ -586,7 +625,7 @@ function ChapterSky() {
         style={styles.chapterSky}
       >
       {tinyStars.map((star) => (
-        <Twinkle key={star.id} {...star} color="#d9e9ff" />
+        <Twinkle key={star.id} {...star} color={star.id % 5 === 0 ? '#9fd6ff' : '#d9e9ff'} />
       ))}
       {chapterStars.map((star) => (
         <Pressable
@@ -601,6 +640,63 @@ function ChapterSky() {
         </Pressable>
       ))}
     </LinearGradient>
+  );
+}
+
+function ChapterSky({
+  activeChapterId,
+  onSelectChapter,
+}: {
+  activeChapterId: number | null;
+  onSelectChapter: (chapterId: number) => void;
+}) {
+  return (
+    <LinearGradient colors={['#071B33', '#163C69', '#0A2342']} locations={[0, 0.55, 1]} style={styles.chapterSky}>
+      {tinyStars.map((star) => (
+        <Twinkle key={star.id} {...star} color={star.id % 5 === 0 ? '#9fd6ff' : '#d9e9ff'} />
+      ))}
+      {chapterStars.map((star) => (
+        <SkyStar
+          activeChapterId={activeChapterId}
+          key={star.id}
+          onPress={() => onSelectChapter(star.id)}
+          star={star}
+        />
+      ))}
+    </LinearGradient>
+  );
+}
+
+function SkyStar({
+  star,
+  activeChapterId,
+  onPress,
+}: {
+  star: { id: number; left: number; top: number };
+  activeChapterId: number | null;
+  onPress: () => void;
+}) {
+  const fade = useSharedValue(activeChapterId === null ? 1 : 0);
+
+  useEffect(() => {
+    const isVisible = activeChapterId === null || activeChapterId === star.id;
+    fade.value = withTiming(isVisible ? 1 : 0, {
+      duration: 520,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [activeChapterId, fade, star.id]);
+
+  const starStyle = useAnimatedStyle(() => ({
+    opacity: fade.value,
+    transform: [{ scale: interpolate(fade.value, [0, 1], [0.76, 1]) }],
+  }));
+
+  return (
+    <Animated.View style={[styles.chapterStarButton, { left: `${star.left}%`, top: `${star.top}%` }, starStyle]}>
+      <Pressable onPress={onPress} style={styles.chapterStarTouch}>
+        <Text style={styles.chapterStar}>{'\u2726'}</Text>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -644,13 +740,13 @@ const styles = StyleSheet.create({
   },
   brandText: {
     color: '#f5c84b',
-    fontFamily: 'Georgia',
+    fontFamily: STORY_FONT_FAMILY,
     fontSize: 17,
     fontWeight: '600',
   },
   heroCopy: {
     color: '#fff8ef',
-    fontFamily: 'Georgia',
+    fontFamily: STORY_FONT_FAMILY,
     fontSize: Math.min(31, width * 0.078),
     fontStyle: 'italic',
     lineHeight: Math.min(44, width * 0.11),
@@ -681,6 +777,7 @@ const styles = StyleSheet.create({
   },
   secretLine: {
     color: '#7fc8e6',
+    fontFamily: STORY_FONT_FAMILY,
     fontSize: 17,
     fontStyle: 'italic',
     fontWeight: '700',
@@ -688,6 +785,7 @@ const styles = StyleSheet.create({
   },
   rightPerson: {
     color: '#bec6d4',
+    fontFamily: STORY_FONT_FAMILY,
     fontSize: 17,
     fontWeight: '800',
     letterSpacing: 2,
@@ -734,6 +832,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#ff8fa3',
+    fontFamily: STORY_FONT_FAMILY,
     fontSize: 12,
     fontWeight: '700',
     marginTop: 24,
@@ -757,6 +856,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   passcodeText: {
+    fontFamily: STORY_FONT_FAMILY,
     fontSize: 18,
     color: '#EAF7FF',
     fontWeight: '600',
@@ -791,7 +891,7 @@ const styles = StyleSheet.create({
   },
   unlockText: {
     color: '#ffffff',
-    fontFamily: 'Georgia',
+    fontFamily: STORY_FONT_FAMILY,
     fontSize: 15,
     fontWeight: '700',
   },
@@ -819,7 +919,7 @@ const styles = StyleSheet.create({
   },
   homeQuote: {
     color: '#ffffff',
-    fontFamily: 'Georgia',
+    fontFamily: STORY_FONT_FAMILY,
     fontSize: 17,
     fontStyle: 'italic',
     fontWeight: '700',
@@ -899,7 +999,7 @@ const styles = StyleSheet.create({
   },
   locationTitle: {
     color: '#ffffff',
-    fontFamily: 'Georgia',
+    fontFamily: STORY_FONT_FAMILY,
     fontSize: 32,
     fontWeight: '700',
     textShadowColor: '#59b9ff',
@@ -1141,6 +1241,7 @@ const styles = StyleSheet.create({
   dragText: {
     bottom: 78,
     color: '#d7d9e2',
+    fontFamily: STORY_FONT_FAMILY,
     fontSize: 15,
     fontWeight: '800',
     left: 0,
@@ -1160,12 +1261,19 @@ const styles = StyleSheet.create({
   chapterSky: {
     flex: 1,
     backgroundColor: '#071B33',
+    overflow: 'hidden',
   },
   chapterStarButton: {
     alignItems: 'center',
     height: 58,
     justifyContent: 'center',
     position: 'absolute',
+    width: 58,
+  },
+  chapterStarTouch: {
+    alignItems: 'center',
+    height: 58,
+    justifyContent: 'center',
     width: 58,
   },
   chapterStar: {
