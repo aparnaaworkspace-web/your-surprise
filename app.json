@@ -43,6 +43,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f8ca1f49-1e1a-4a62-9254-e0539a7c342f"
+      }
+    },
+    "owner": "aparnaa2023s-team"
   }
 }
