@@ -1,10 +1,16 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
+  BackHandler,
   Dimensions,
   Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
+  ImageBackground,
   StyleSheet,
   Text,
   TextInput,
@@ -34,18 +40,18 @@ const unlockDistance = width * 0.58;
 
 const tinyStars = Array.from({ length: 78 }, (_, index) => ({
   id: index,
-  left: ((index * 37) % 100),
-  top: ((index * 53) % 92) + 2,
-  size: 1 + (index % 3) * 0.8,
-  delay: (index % 9) * 160,
+  left: Math.random() * 100,
+  top: Math.random() * 95,
+  size: 1 + Math.random() * 2.8,
+  delay: Math.random() * 1800,
 }));
 
 const chapterStars = [
-  { id: 1, left: 16, top: 23 },
-  { id: 2, left: 36, top: 15 },
-  { id: 3, left: 59, top: 25 },
-  { id: 4, left: 77, top: 14 },
-  { id: 5, left: 49, top: 39 },
+  { id: 1, left: 9, top: 5 },
+  { id: 2, left: 76, top: 32 },
+  { id: 3, left: 22, top: 56 },
+  { id: 4, left: 72, top: 72 },
+  { id: 5, left: 48, top: 88 },
 ];
 
 const rainDrops = Array.from({ length: 72 }, (_, index) => ({
@@ -70,13 +76,14 @@ export default function StoryEntryScreen() {
   const [isHome, setIsHome] = useState(false);
   const [showScene, setShowScene] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
+  const [homeStep, setHomeStep] = useState<'quote' | 'scene' | 'sky'>('quote');
 
   const loginOpacity = useSharedValue(1);
-  const homeOpacity = useSharedValue(0);
-  const cardEnter = useSharedValue(0);
+  const homeOpacity = useSharedValue(1);
+  const cardEnter = useSharedValue(1);
   const shake = useSharedValue(0);
   const press = useSharedValue(1);
-  const quoteOpacity = useSharedValue(0);
+  const quoteOpacity = useSharedValue(1);
   const quoteScale = useSharedValue(0.96);
   const camera = useSharedValue(0);
   const heartX = useSharedValue(0);
@@ -87,23 +94,94 @@ export default function StoryEntryScreen() {
   const heartPulse = useSharedValue(1);
 
   useEffect(() => {
-    cardEnter.value = withTiming(1, { duration: 900, easing: Easing.out(Easing.cubic) });
     heartPulse.value = withRepeat(withTiming(1.08, { duration: 900 }), -1, true);
-  }, [cardEnter, heartPulse]);
+  }, [heartPulse]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!isHome) {
+        return false;
+      }
+
+      if (homeStep === 'sky') {
+        setHomeStep('scene');
+        setIsUnlocked(false);
+        delivered.value = 0;
+        skyReveal.value = withTiming(0, { duration: 360, easing: Easing.out(Easing.cubic) });
+        heartX.value = withSpring(0, { damping: 15, stiffness: 130 });
+        heartY.value = withSpring(0, { damping: 15, stiffness: 130 });
+      } else if (homeStep === 'scene') {
+        setHomeStep('quote');
+        setShowScene(false);
+        camera.value = 0;
+        quoteOpacity.value = 1;
+        quoteScale.value = 1;
+      } else {
+        setIsHome(false);
+        setShowScene(false);
+        setIsUnlocked(false);
+        loginOpacity.value = 1;
+        homeOpacity.value = 1;
+        quoteOpacity.value = 1;
+        quoteScale.value = 0.96;
+        camera.value = 0;
+        heartX.value = 0;
+        heartY.value = 0;
+        delivered.value = 0;
+        skyReveal.value = 0;
+        glow.value = 0;
+      }
+      return true;
+    });
+
+    return () => subscription.remove();
+  }, [
+    camera,
+    delivered,
+    glow,
+    heartX,
+    heartY,
+    homeOpacity,
+    homeStep,
+    isHome,
+    loginOpacity,
+    quoteOpacity,
+    quoteScale,
+    skyReveal,
+  ]);
 
   useEffect(() => {
     if (!isHome) {
       return;
     }
 
-    homeOpacity.value = withTiming(1, { duration: 620 });
-    quoteOpacity.value = withDelay(360, withTiming(1, { duration: 1000 }));
-    quoteScale.value = withDelay(360, withTiming(1, { duration: 1000, easing: Easing.out(Easing.cubic) }));
-    quoteOpacity.value = withDelay(1850, withTiming(0, { duration: 700 }));
-    camera.value = withDelay(2150, withTiming(1, { duration: 4400, easing: Easing.inOut(Easing.cubic) }, () => {
-      runOnJS(setShowScene)(true);
-    }));
-  }, [camera, homeOpacity, isHome, quoteOpacity, quoteScale]);
+    homeOpacity.value = 1;
+    setHomeStep('quote');
+    setShowScene(true);
+    camera.value = 0;
+    skyReveal.value = 0;
+    delivered.value = 0;
+    quoteOpacity.value = 1;
+    quoteScale.value = 1;
+
+    quoteOpacity.value = withDelay(
+      900,
+      withTiming(0, {
+        duration: 500,
+        easing: Easing.inOut(Easing.cubic),
+      })
+    );
+
+    camera.value = withDelay(
+      900,
+      withTiming(1, {
+        duration: 600,
+        easing: Easing.inOut(Easing.cubic),
+      }, () => {
+        runOnJS(setHomeStep)('scene');
+      })
+    );
+  }, [camera, delivered, homeOpacity, isHome, quoteOpacity, quoteScale, skyReveal]);
 
   const codeDots = useMemo(() => Array.from({ length: 4 }, (_, index) => index), []);
 
@@ -124,8 +202,11 @@ export default function StoryEntryScreen() {
 
     setHasError(false);
     triggerLightHaptic();
-    loginOpacity.value = withTiming(0, { duration: 620, easing: Easing.inOut(Easing.cubic) }, () => {
-      runOnJS(setIsHome)(true);
+    runOnJS(setIsHome)(true);
+
+    loginOpacity.value = withTiming(0, {
+      duration: 620,
+      easing: Easing.inOut(Easing.cubic),
     });
   };
 
@@ -134,7 +215,9 @@ export default function StoryEntryScreen() {
     triggerLightHaptic();
     delivered.value = withTiming(1, { duration: 900, easing: Easing.out(Easing.cubic) });
     glow.value = withRepeat(withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.sin) }), -1, true);
-    skyReveal.value = withDelay(950, withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.cubic) }));
+    skyReveal.value = withDelay(420, withTiming(1, { duration: 1900, easing: Easing.inOut(Easing.cubic) }, () => {
+      runOnJS(setHomeStep)('sky');
+    }));
   };
 
   const panGesture = Gesture.Pan()
@@ -184,15 +267,14 @@ export default function StoryEntryScreen() {
   }));
 
   const journeyStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(camera.value, [0.02, 0.16, 0.92, 1], [0, 1, 1, 0]),
-    transform: [{ scale: interpolate(camera.value, [0, 1], [1, 22]) }],
+    opacity: 0,
   }));
 
   const sceneStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(camera.value, [0.86, 1], [0, 1]),
+    opacity: interpolate(camera.value, [0, 1], [0, 1]),
     transform: [
-      { scale: interpolate(delivered.value, [0, 1], [1, 1.12]) },
-      { translateY: interpolate(skyReveal.value, [0, 1], [0, height * 0.34]) },
+      { translateY: interpolate(skyReveal.value, [0, 1], [0, height * 0.24]) },
+      { scale: interpolate(skyReveal.value, [0, 1], [1, 2.25]) },
     ],
   }));
 
@@ -208,10 +290,6 @@ export default function StoryEntryScreen() {
       { translateY: heartY.value },
       { scale: heartPulse.value },
     ],
-  }));
-
-  const houseGlowStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(delivered.value, [0, 1], [0.16, 0.82]) + glow.value * 0.08,
   }));
 
   return (
@@ -245,20 +323,14 @@ export default function StoryEntryScreen() {
         <Animated.View style={[styles.absolute, styles.homeBase, homeStyle]}>
           <Animated.View style={[styles.quoteWrap, quoteStyle]}>
             <Text style={styles.homeQuote}>
-              &quot;The world stopped during COVID... My heart{'\n'}didn&apos;t.&quot;
+              &quot;The world stopped during COVID,{'\n'}my heart didn&apos;t...&quot;
             </Text>
           </Animated.View>
 
-          <Animated.View style={[styles.cosmicJourney, journeyStyle]}>
-            <Text style={[styles.cosmicText, styles.earth]}>Earth</Text>
-            <Text style={[styles.cosmicText, styles.india]}>India</Text>
-            <Text style={[styles.cosmicText, styles.tamilNadu]}>Tamil Nadu</Text>
-            <Text style={[styles.cosmicText, styles.streetLabel]}>a quiet street</Text>
-          </Animated.View>
+          <Animated.View pointerEvents="none" style={[styles.cosmicJourney, journeyStyle]} />
 
           <Animated.View style={[styles.absolute, sceneStyle]}>
             <StreetScene
-              houseGlowStyle={houseGlowStyle}
               heartStyle={heartStyle}
               panGesture={panGesture}
               delivered={delivered}
@@ -296,8 +368,42 @@ function LoginScreen({
   buttonStyle: object;
   cardStyle: object;
 }) {
+  const inputRef = useRef<TextInput>(null);
+  const keyboardProgress = useSharedValue(0);
+  const focusSecretInput = () => inputRef.current?.focus();
+  const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSubscription = Keyboard.addListener(showEvent, () => {
+      keyboardProgress.value = withTiming(1, { duration: 220, easing: Easing.out(Easing.cubic) });
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      keyboardProgress.value = withTiming(0, { duration: 220, easing: Easing.out(Easing.cubic) });
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, [keyboardProgress]);
+
+  const keyboardContentStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: interpolate(keyboardProgress.value, [0, 1], [0, -18]) },
+      { scale: interpolate(keyboardProgress.value, [0, 1], [1, 0.9]) },
+    ],
+  }));
+
   return (
     <SafeAreaView style={styles.login}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+        style={styles.keyboardFrame}
+      >
+        <Animated.View style={[styles.loginContent, keyboardContentStyle]}>
       <FloatingStars />
       <View style={styles.brandRow}>
         <Text style={styles.brandSparkle}>✦</Text>
@@ -310,39 +416,57 @@ function LoginScreen({
       </Text>
 
       <Animated.View style={[styles.loginCard, cardStyle]}>
+        <View style={styles.cardContent}>
         <Text style={styles.secretLine}>&quot;If this secret makes you smile...&quot;</Text>
-        <Text style={styles.rightPerson}>YOU&apos;RE PROBABLY THE RIGHT{'\n'}PERSON</Text>
+        <Text style={styles.rightPerson}>YOU&apos;RE PROBABLY THE RIGHT PERSON</Text>
+        
 
-        <View style={styles.dotRow}>
-          {codeDots.map((dot) => (
-            <View key={dot} style={[styles.codeDot, code.length > dot && styles.codeDotFilled]} />
-          ))}
+      <Pressable
+        style={styles.passcodeContainer}
+        onPress={focusSecretInput}
+      >
+        {[0, 1, 2, 3].map((index) => (
+          <View key={index} style={styles.passcodeCircle}>
+            <Text style={styles.passcodeText}>
+              {showPassword ? code[index] ?? '' : code[index] ? '•' : ''}
+            </Text>
+          </View>
+        ))}
+
+        <Pressable
+          style={styles.eyeButton}
+          onPress={() => setShowPassword(!showPassword)}
+        >
+          <Ionicons
+            name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+            size={18}
+            color="#A7D6FF"
+          />
+        </Pressable>
+      </Pressable>
+
+      <TextInput
+        ref={inputRef}
+        value={code}
+        onChangeText={onChangeCode}
+        maxLength={4}
+        style={styles.secretInput}
+        autoCapitalize="none"
+        autoCorrect={false}
+        secureTextEntry={false}
+      />
+        {hasError && <Text style={styles.errorText}>That is not our secret. Try the code in your heart.</Text>}
         </View>
-
-        <TextInput
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardAppearance="dark"
-          maxLength={4}
-          onChangeText={onChangeCode}
-          onSubmitEditing={onSubmit}
-          placeholder="Enter our Secret Code"
-          placeholderTextColor="#69a8c7"
-          returnKeyType="done"
-          style={[styles.secretInput, hasError && styles.secretInputError]}
-          value={code}
-        />
-        {hasError && <Text style={styles.errorText}>That is not our secret. Try the date in your heart.</Text>}
+        
 
         <Pressable onPress={onSubmit} onPressIn={onPressIn} onPressOut={onPressOut}>
           <Animated.View style={[styles.unlockButton, buttonStyle]}>
-            <Text style={styles.unlockIcon}>♥</Text>
             <Text style={styles.unlockText}>Unlock Our Story ❤️</Text>
           </Animated.View>
         </Pressable>
-
-        <Text style={styles.forgot}>Forgot the date?</Text>
       </Animated.View>
+        </Animated.View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -369,13 +493,11 @@ function Twinkle({ left, top, size, delay, color }: { left: number; top: number;
 }
 
 function StreetScene({
-  houseGlowStyle,
   heartStyle,
   panGesture,
   delivered,
   skyReveal,
 }: {
-  houseGlowStyle: object;
   heartStyle: object;
   panGesture: ReturnType<typeof Gesture.Pan>;
   delivered: SharedValue<number>;
@@ -387,17 +509,12 @@ function StreetScene({
 
   return (
     <View style={styles.streetScene}>
-      <View style={styles.skyBlue} />
-      <Rain delivered={delivered} skyReveal={skyReveal} />
-      <View style={styles.vanishingGlow} />
-      <View style={styles.road} />
-      <View style={[styles.roadLine, styles.roadLineLeft]} />
-      <View style={[styles.roadLine, styles.roadLineRight]} />
-      <StreetLamp side="left" />
-      <StreetLamp side="right" />
-      <House side="left" houseGlowStyle={houseGlowStyle} />
-      <House side="right" houseGlowStyle={houseGlowStyle} />
-      <View style={styles.reflectionPool} />
+      <ImageBackground
+        source={require('../assets/images/two-houses.png')}
+        resizeMode="cover"
+        style={styles.houseBackground}
+      >
+    <Rain delivered={delivered} skyReveal={skyReveal} />
 
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.heartWrap, heartStyle]}>
@@ -409,31 +526,7 @@ function StreetScene({
       </GestureDetector>
 
       <Animated.Text style={[styles.dragText, instructionStyle]}>DRAG THE HEART TO BEGIN.</Animated.Text>
-    </View>
-  );
-}
-
-function House({ side, houseGlowStyle }: { side: 'left' | 'right'; houseGlowStyle: object }) {
-  return (
-    <View style={[styles.house, side === 'left' ? styles.leftHouse : styles.rightHouse]}>
-      <Animated.View style={[styles.houseAura, houseGlowStyle]} />
-      <View style={styles.roof} />
-      <View style={styles.houseBody}>
-        <View style={styles.windowWide} />
-        <View style={styles.windowSmall} />
-        <View style={styles.door} />
-      </View>
-      <View style={styles.steps} />
-    </View>
-  );
-}
-
-function StreetLamp({ side }: { side: 'left' | 'right' }) {
-  return (
-    <View style={[styles.lamp, side === 'left' ? styles.leftLamp : styles.rightLamp]}>
-      <View style={styles.lampGlow} />
-      <View style={styles.lampBulb} />
-      <View style={styles.lampPole} />
+      </ImageBackground>
     </View>
   );
 }
@@ -487,7 +580,11 @@ function RainDrop({
 
 function ChapterSky() {
   return (
-    <View style={styles.chapterSky}>
+      <LinearGradient
+        colors={['#071B33', '#163C69', '#0A2342']}
+        locations={[0, 0.55, 1]}
+        style={styles.chapterSky}
+      >
       {tinyStars.map((star) => (
         <Twinkle key={star.id} {...star} color="#d9e9ff" />
       ))}
@@ -503,7 +600,7 @@ function ChapterSky() {
           <Text style={styles.chapterStar}>✦</Text>
         </Pressable>
       ))}
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -519,15 +616,25 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     backgroundColor: '#00182b',
-    justifyContent: 'center',
     overflow: 'hidden',
+  },
+  keyboardFrame: {
+    flex: 1,
+    width: '100%',
+  },
+  loginContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 30,
     paddingHorizontal: 28,
+    paddingTop: 18,
   },
   brandRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 90,
+    marginBottom: 56,
   },
   brandSparkle: {
     color: '#ffd44f',
@@ -544,10 +651,10 @@ const styles = StyleSheet.create({
   heroCopy: {
     color: '#fff8ef',
     fontFamily: 'Georgia',
-    fontSize: 44,
+    fontSize: Math.min(31, width * 0.078),
     fontStyle: 'italic',
-    lineHeight: 64,
-    marginBottom: 38,
+    lineHeight: Math.min(44, width * 0.11),
+    marginBottom: 14,
     textAlign: 'center',
     textShadowColor: 'rgba(255,255,255,0.25)',
     textShadowRadius: 10,
@@ -562,9 +669,11 @@ const styles = StyleSheet.create({
     borderRadius: 34,
     borderWidth: 1,
     maxWidth: 410,
-    minHeight: 340,
+    minHeight: 312,
     paddingHorizontal: 28,
-    paddingVertical: 32,
+    paddingBottom: 31,
+    justifyContent: 'space-between',
+    paddingTop: 29,
     shadowColor: '#6bbdff',
     shadowOpacity: 0.32,
     shadowRadius: 28,
@@ -588,7 +697,11 @@ const styles = StyleSheet.create({
   dotRow: {
     flexDirection: 'row',
     gap: 18,
-    marginTop: 34,
+  },
+  codeTouchArea: {
+    marginTop: 27,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
   },
   codeDot: {
     backgroundColor: '#738195',
@@ -603,13 +716,18 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
   },
   secretInput: {
-    color: '#d5efff',
-    fontSize: 18,
-    fontWeight: '700',
-    height: 48,
-    marginTop: 10,
-    textAlign: 'center',
-    width: '100%',
+    position: 'absolute',
+    opacity: 0,
+    width: 1,
+    height: 1,
+  },
+  inputContainer: {
+    marginTop: 24,
+    width: '82%',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   secretInputError: {
     color: '#ffb3bd',
@@ -618,9 +736,40 @@ const styles = StyleSheet.create({
     color: '#ff8fa3',
     fontSize: 12,
     fontWeight: '700',
-    marginBottom: 8,
-    marginTop: -4,
+    marginTop: 24,
+    marginBottom: 2,
+    lineHeight: 18,
     textAlign: 'center',
+  },
+  passcodeContainer: {
+    marginTop: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  passcodeCircle: {
+    width: 30,
+    height: 30,
+    marginHorizontal: 7,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  passcodeText: {
+    fontSize: 18,
+    color: '#EAF7FF',
+    fontWeight: '600',
+    textAlign: 'center',
+    includeFontPadding: false, 
+    textAlignVertical: 'center', 
+  },
+  eyeButton: {
+    marginLeft: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 24,
+    width: 32,
   },
   unlockButton: {
     alignItems: 'center',
@@ -628,13 +777,13 @@ const styles = StyleSheet.create({
     borderRadius: 31,
     flexDirection: 'row',
     gap: 13,
-    height: 64,
+    height: 56,
     justifyContent: 'center',
-    marginTop: 14,
+    marginTop: 25,
     shadowColor: '#0b7fff',
     shadowOpacity: 0.55,
     shadowRadius: 22,
-    width: Math.min(width - 86, 350),
+    width: Math.min(width - 104, 316),
   },
   unlockIcon: {
     color: '#ffffff',
@@ -643,14 +792,12 @@ const styles = StyleSheet.create({
   unlockText: {
     color: '#ffffff',
     fontFamily: 'Georgia',
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '700',
   },
-  forgot: {
-    color: '#86c8e6',
-    fontSize: 17,
-    fontWeight: '700',
-    marginTop: 34,
+  cardContent: {
+    width: '100%',
+    alignItems: 'center',
   },
   twinkle: {
     borderRadius: 4,
@@ -684,42 +831,116 @@ const styles = StyleSheet.create({
   cosmicJourney: {
     alignItems: 'center',
     backgroundColor: '#01050c',
-    height: 170,
+    height: '100%',
     justifyContent: 'center',
-    left: width * 0.5 - 85,
+    left: 0,
     position: 'absolute',
-    top: height * 0.48 - 85,
-    width: 170,
+    top: 0,
+    width: '100%',
   },
-  cosmicText: {
-    color: '#cfe7ff',
-    fontFamily: 'Georgia',
-    fontWeight: '700',
+  earthZoomStage: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    width: '100%',
+  },
+  globe: {
+    alignItems: 'center',
+    backgroundColor: '#0b56a1',
+    borderColor: 'rgba(165, 220, 255, 0.42)',
+    borderRadius: 118,
+    borderWidth: 1,
+    height: 236,
+    justifyContent: 'center',
+    overflow: 'hidden',
     position: 'absolute',
-    textShadowColor: '#48a9ff',
-    textShadowRadius: 14,
+    shadowColor: '#4db7ff',
+    shadowOpacity: 0.76,
+    shadowRadius: 38,
+    width: 236,
   },
-  earth: {
-    fontSize: 28,
-    top: 18,
+  globeGlow: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 118,
   },
-  india: {
-    color: '#ffd461',
-    fontSize: 19,
-    top: 63,
+  landMass: {
+    backgroundColor: '#2aa96f',
+    position: 'absolute',
   },
-  tamilNadu: {
-    fontSize: 13,
-    top: 99,
+  landOne: {
+    borderRadius: 34,
+    height: 70,
+    left: 42,
+    top: 42,
+    transform: [{ rotate: '-18deg' }],
+    width: 92,
   },
-  streetLabel: {
+  landTwo: {
+    borderRadius: 38,
+    height: 88,
+    right: 32,
+    top: 82,
+    transform: [{ rotate: '24deg' }],
+    width: 76,
+  },
+  landThree: {
+    borderRadius: 28,
+    bottom: 38,
+    height: 52,
+    left: 80,
+    transform: [{ rotate: '12deg' }],
+    width: 68,
+  },
+  locationCard: {
+    alignItems: 'center',
+    position: 'absolute',
+  },
+  locationTitle: {
     color: '#ffffff',
-    fontSize: 9,
-    top: 124,
+    fontFamily: 'Georgia',
+    fontSize: 32,
+    fontWeight: '700',
+    textShadowColor: '#59b9ff',
+    textShadowRadius: 18,
+  },
+  locationLine: {
+    backgroundColor: '#6bbdff',
+    borderRadius: 2,
+    height: 3,
+    marginTop: 10,
+    width: 120,
+  },
+  locationLineGold: {
+    backgroundColor: '#ffd461',
+  },
+  destinationPreview: {
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 22,
+    borderWidth: 1,
+    height: height * 0.52,
+    overflow: 'hidden',
+    position: 'absolute',
+    shadowColor: '#6bbdff',
+    shadowOpacity: 0.4,
+    shadowRadius: 28,
+    width: width * 0.78,
+  },
+  destinationImage: {
+    flex: 1,
+  },
+  destinationVignette: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 18, 38, 0.22)',
   },
   streetScene: {
     flex: 1,
     backgroundColor: '#04101b',
+    overflow: 'hidden',
+  },
+  houseBackground: {
+    flex: 1,
     overflow: 'hidden',
   },
   skyBlue: {
@@ -938,7 +1159,7 @@ const styles = StyleSheet.create({
   },
   chapterSky: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#071B33',
   },
   chapterStarButton: {
     alignItems: 'center',
