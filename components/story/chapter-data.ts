@@ -22,7 +22,7 @@ export const chapters: ChapterInfo[] = [
   },
   {
     id: 5,
-    quote: 'Love is a game where either of them wins.',
+    quote: 'Love is a game, that two can play and both win',
   },
 ];
 

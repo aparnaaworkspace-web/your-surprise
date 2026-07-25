@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -75,6 +75,7 @@ function triggerErrorHaptic() {
 }
 
 export default function StoryEntryScreen() {
+  const { scene } = useLocalSearchParams<{ scene?: string }>();
   const [code, setCode] = useState('');
   const [hasError, setHasError] = useState(false);
   const [isHome, setIsHome] = useState(false);
@@ -166,6 +167,22 @@ export default function StoryEntryScreen() {
       return;
     }
 
+    if (scene === 'houses') {
+      homeOpacity.value = 1;
+      loginOpacity.value = 0;
+      quoteOpacity.value = 0;
+      quoteScale.value = 1;
+      camera.value = 1;
+      skyReveal.value = 0;
+      delivered.value = 0;
+      heartX.value = 0;
+      heartY.value = 0;
+      setHomeStep('scene');
+      setShowScene(true);
+      setIsUnlocked(false);
+      return;
+    }
+
     homeOpacity.value = 1;
     setHomeStep('quote');
     setShowScene(true);
@@ -192,7 +209,15 @@ export default function StoryEntryScreen() {
         runOnJS(setHomeStep)('scene');
       })
     );
-  }, [camera, delivered, homeOpacity, isHome, quoteOpacity, quoteScale, skyReveal]);
+  }, [camera, delivered, heartX, heartY, homeOpacity, isHome, loginOpacity, quoteOpacity, quoteScale, scene, skyReveal]);
+
+  useEffect(() => {
+    if (scene !== 'houses') {
+      return;
+    }
+
+    setIsHome(true);
+  }, [scene]);
 
   const codeDots = useMemo(() => Array.from({ length: 4 }, (_, index) => index), []);
 

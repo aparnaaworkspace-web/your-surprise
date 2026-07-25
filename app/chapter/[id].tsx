@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Dimensions,
   Image,
@@ -17,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
   interpolate,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -27,6 +29,8 @@ import { getChapter } from '@/components/story/chapter-data';
 import { EnvelopeCard } from '@/components/story/envelope-card';
 import { MusicCard } from '@/components/story/music-card';
 import { STORY_FONT_FAMILY } from '@/constants/typography';
+import { BackHandler } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const PHOTO_CARD_WIDTH = 110;
@@ -127,15 +131,6 @@ const chapterThreeRows = [
   ],
 ];
 
-const bondChartPoints = [
-  { x: 0.06, y: 0.74 },
-  { x: 0.2, y: 0.7 },
-  { x: 0.38, y: 0.58 },
-  { x: 0.58, y: 0.38 },
-  { x: 0.72, y: 0.26 },
-  { x: 0.9, y: 0.12 },
-];
-
 const breakdownBars = [
   { label: 'Love', value: 0.98, tone: 'Transcendent' },
   { label: 'Anger', value: 0.22, tone: 'Passing' },
@@ -146,6 +141,34 @@ const breakdownBars = [
 const waitingCalendarDots = [
   1, 10, 12, 16, 19, 23, 27, 31, 34,
 ];
+
+const goodGameEmojis = ['❤️', '🌸', '🎵', '😂'];
+const badGameEmojis = ['⚡', '😡', '😭'];
+const fortuneRewards = [
+  '🤗 Free Warm Hug',
+  '☕ You Owe Me a Coffee',
+  '🎵 Sing Our Song',
+  '📝 One Poem Please',
+  '💃 Dance Together While Drunk',
+  '😘 Lick Me',
+  '💋 A Deep Kiss',
+];
+const wheelSize = Math.min(screenWidth - 82, 320);
+
+type FallingItem = {
+  id: number;
+  emoji: string;
+  left: number;
+  duration: number;
+  points: 1 | -1;
+};
+
+type ScoreIndicator = {
+  id: number;
+  value: 1 | -1;
+  left: number;
+  top: number;
+};
 
 type MemoryPhoto = {
   id: string;
@@ -176,6 +199,10 @@ export default function ChapterScreen() {
 
   if (numericId === 4) {
     return <LoveThatSurvivedDistanceScreen />;
+  }
+
+  if (numericId === 5) {
+    return <FindMeAgainScreen />;
   }
 
   return (
@@ -326,7 +353,7 @@ function MemoriesWeNeverHadScreen() {
 
 function LoveThatSurvivedDistanceScreen() {
   const [activeSong, setActiveSong] = useState<string | null>('distance');
-  const [revealedCards, setRevealedCards] = useState({
+  const [, setRevealedCards] = useState({
     bond: false,
     missing: false,
     breakdown: false,
@@ -410,6 +437,438 @@ function LoveThatSurvivedDistanceScreen() {
         </DashboardCard>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function FindMeAgainScreen() {
+  const [phase, setPhase] = useState<'intro' | 'playing' | 'lost' | 'wheel'>('intro');
+  const [score, setScore] = useState(0);
+  const [wrongCount, setWrongCount] = useState(0);
+  const [fallingItems, setFallingItems] = useState<FallingItem[]>([]);
+  const [indicators, setIndicators] = useState<ScoreIndicator[]>([]);
+  const [selectedReward, setSelectedReward] = useState('');
+  const itemCounter = useRef(0);
+  const [speedMultiplier, setSpeedMultiplier] = useState(1);
+
+  const resetGame = () => {
+      itemCounter.current = 0;
+      setScore(0);
+      setWrongCount(0);
+      setSpeedMultiplier(1);
+      setFallingItems([]);
+      setIndicators([]);
+      setSelectedReward('');
+      setPhase('playing');
+    };
+
+    useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        router.back(); // Go back to the stars page
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        onBackPress
+      );
+
+      return () => subscription.remove();
+    }, [])
+  );
+
+  useEffect(() => {
+    if (phase !== 'playing') return;
+
+    const timer = setInterval(() => {
+      setSpeedMultiplier((prev) => Math.min(prev + 0.15, 2));
+    }, 4000);
+
+    return () => clearInterval(timer);
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== 'playing') {
+      return;
+    }
+
+    const spawnTimer = setInterval(() => {
+      const isGood = Math.random() > 0.35;
+      const source = isGood ? goodGameEmojis : badGameEmojis;
+      const emoji = source[Math.floor(Math.random() * source.length)];
+      const id = itemCounter.current + 1;
+      itemCounter.current = id;
+
+      setFallingItems((current) => [
+        ...current,
+        {
+          id,
+          emoji,
+          left: 18 + Math.random() * 64,
+          duration: (4300 + Math.random() * 1400) / speedMultiplier,
+          points: isGood ? 1 : -1,
+        },
+      ]);
+    }, 720);
+
+    return () => clearInterval(spawnTimer);
+  }, [phase, speedMultiplier]);
+
+  const removeFallingItem = useCallback((id: number) => {
+    setFallingItems((current) => current.filter((item) => item.id !== id));
+  }, []);
+
+  const addIndicator = useCallback((value: 1 | -1, left: number, top: number) => {
+    const id = Date.now() + Math.random();
+    setIndicators((current) => [...current, { id, value, left, top }]);
+    setTimeout(() => {
+      setIndicators((current) => current.filter((indicator) => indicator.id !== id));
+    }, 950);
+  }, []);
+
+  const catchEmoji = useCallback((item: FallingItem) => {
+    removeFallingItem(item.id);
+    addIndicator(item.points, item.left, screenHeight * 0.48);
+
+    if (item.points === 1) {
+      setScore((current) => {
+        const nextScore = current + 1;
+        if (nextScore >= 10) {
+          setPhase('wheel');
+          setFallingItems([]);
+        }
+        return nextScore;
+      });
+      return;
+    }
+
+    setScore((current) => Math.max(0, current - 1));
+    setWrongCount((current) => {
+      const nextWrongCount = current + 1;
+      if (nextWrongCount > 5) {
+        setPhase('lost');
+        setFallingItems([]);
+      }
+      return nextWrongCount;
+    });
+  }, [addIndicator, removeFallingItem]);
+
+  return (
+    <SafeAreaView style={styles.screen}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <NightSky />
+      <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Ionicons name="arrow-back" size={28} color="#c9d9ed" />
+      </Pressable>
+      <Text style={styles.chapterTitle}>Find Me Again</Text>
+      <View style={styles.scorePill}>
+        <Text style={styles.scoreLabel}>SCORE</Text>
+        <Text style={styles.scoreValue}>{score}</Text>
+      </View>
+      {phase === 'playing' ? (
+        <Text style={styles.wrongCounter}>misses {wrongCount}/6</Text>
+      ) : null}
+
+      {phase === 'intro' ? (
+        <FindMeAgainIntro onStart={resetGame} />
+      ) : null}
+
+      {phase === 'playing' ? (
+        <View style={styles.gameField}>
+          {fallingItems.map((item) => (
+            <FallingEmoji
+              item={item}
+              key={item.id}
+              onCatch={catchEmoji}
+              onMiss={removeFallingItem}
+            />
+          ))}
+          {indicators.map((indicator) => (
+            <ScoreFloat key={indicator.id} indicator={indicator} />
+          ))}
+        </View>
+      ) : null}
+
+      {phase === 'lost' ? <TryAgainPopup onRetry={resetGame} /> : null}
+
+      {phase === 'wheel' ? (
+        <FortuneWheelPopup
+          reward={selectedReward}
+          onReward={setSelectedReward}
+          onReset={() => setSelectedReward('')}
+        />
+      ) : null}
+    </SafeAreaView>
+  );
+}
+
+function FindMeAgainIntro({ onStart }: { onStart: () => void }) {
+  return (
+    <View style={styles.findIntroCard}>
+      <Text style={styles.findIntroTitle}>Memory Game</Text>
+      <Text style={styles.findIntroCopy}>
+        Catch the beautiful memories. Avoid the storms that pull us apart.
+      </Text>
+      <View style={styles.findRuleLine} />
+      <View style={styles.findRulesRow}>
+        <View style={styles.findRuleGroup}>
+          <Text style={styles.findRuleEmoji}>❤️  🌸</Text>
+          <Text style={styles.findRuleGood}>+1</Text>
+        </View>
+        <View style={styles.findRuleGroup}>
+          <Text style={styles.findRuleEmoji}>⚡  😭</Text>
+          <Text style={styles.findRuleBad}>-1</Text>
+        </View>
+      </View>
+      <View style={styles.findRuleLine} />
+      <Pressable onPress={onStart} style={styles.findStartButton}>
+        <Text style={styles.findStartText}>START THE GAME</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function FallingEmoji({
+  item,
+  onCatch,
+  onMiss,
+}: {
+  item: FallingItem;
+  onCatch: (item: FallingItem) => void;
+  onMiss: (id: number) => void;
+}) {
+  const fall = useSharedValue(-60);
+  const spin = useSharedValue(0);
+
+  useEffect(() => {
+    fall.value = withTiming(screenHeight + 80, {
+      duration: item.duration,
+      easing: Easing.linear,
+    }, (finished) => {
+      if (finished) {
+        runOnJS(onMiss)(item.id);
+      }
+    });
+    spin.value = withRepeat(
+      withTiming(1, {
+        duration: 1800,
+        easing: Easing.inOut(Easing.sin),
+      }),
+      -1,
+      true
+    );
+  }, [fall, item.duration, item.id, onMiss, spin]);
+
+  const emojiStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: fall.value },
+      { rotate: `${interpolate(spin.value, [0, 1], [-8, 8])}deg` },
+      { scale: interpolate(spin.value, [0, 1], [0.95, 1.08]) },
+    ],
+  }));
+
+  return (
+    <Animated.View style={[styles.fallingEmojiWrap, { left: `${item.left}%` }, emojiStyle]}>
+      <Pressable onPress={() => onCatch(item)} hitSlop={18}>
+        <Text style={styles.fallingEmoji}>{item.emoji}</Text>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function ScoreFloat({ indicator }: { indicator: ScoreIndicator }) {
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    progress.value = withTiming(1, {
+      duration: 900,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [progress]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 0.2, 1], [0, 1, 0]),
+    transform: [{ translateY: interpolate(progress.value, [0, 1], [0, -38]) }],
+  }));
+
+  return (
+    <Animated.Text
+      style={[
+        styles.scoreFloat,
+        indicator.value > 0 ? styles.scoreFloatGood : styles.scoreFloatBad,
+        { left: `${indicator.left}%`, top: indicator.top },
+        style,
+      ]}>
+      {indicator.value > 0 ? '+1' : '-1'}
+    </Animated.Text>
+  );
+}
+
+function TryAgainPopup({ onRetry }: { onRetry: () => void }) {
+  return (
+    <View style={styles.popupBackdrop}>
+      <View style={styles.modalBlurTint} />
+      <View style={styles.tryAgainCard}>
+        <Text style={styles.tryAgainHeart}>❤️</Text>
+        <Text style={styles.tryAgainTitle}>Even love deserves another chance 😘</Text>
+        <Pressable onPress={onRetry} style={styles.tryAgainButton}>
+          <Text style={styles.tryAgainButtonText}>LET&apos;S TRY AGAIN</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function FortuneWheelPopup({
+  reward,
+  onReward,
+  onReset,
+}: {
+  reward: string;
+  onReward: (reward: string) => void;
+  onReset: () => void;
+}) {
+  const rotation = useSharedValue(0);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [showFinalReward, setShowFinalReward] = useState(false);
+
+  const wheelStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+  }));
+
+  const spinWheel = () => {
+    if (isSpinning || reward) {
+      return;
+    }
+
+    setIsSpinning(true);
+    const rewardIndex = Math.floor(Math.random() * fortuneRewards.length);
+    const segmentSize = 360 / fortuneRewards.length;
+
+    const targetRotation = 360 * 5 - rewardIndex * segmentSize;
+
+    rotation.value = withTiming(targetRotation, {
+      duration: 3600,
+      easing: Easing.out(Easing.cubic),
+    }, () => {
+      runOnJS(onReward)(fortuneRewards[rewardIndex]);
+      runOnJS(setIsSpinning)(false);
+    });
+  };
+
+  return (
+    <View style={styles.popupBackdrop}>
+      <View style={styles.modalBlurTint} />
+      <Text style={styles.wheelTitle}>Fortune Wheel</Text>
+      <View style={styles.wheelShell}>
+        <View style={styles.wheelPointer} />
+        <Animated.View style={[styles.wheel, wheelStyle]}>
+          {fortuneRewards.map((item, index) => (
+            <View
+              key={item}
+              style={[
+                styles.wheelSegment,
+                {
+                  transform: [
+                    {
+                      rotate: `${(360 / fortuneRewards.length) * index}deg`,
+                    },
+                  ]
+                },
+              ]}>
+              <Text style={styles.wheelSegmentText}>{item.replace(/^.\s/u, '').toUpperCase()}</Text>
+            </View>
+          ))}
+        </Animated.View>
+        <Pressable onPress={spinWheel} style={styles.spinButton}>
+          <Text style={styles.spinButtonText}>{isSpinning ? '...' : 'SPIN'}</Text>
+        </Pressable>
+      </View>
+
+      {reward && !showFinalReward ? (
+        <FatePopup reward={reward} onAccept={() => setShowFinalReward(true)} />
+      ) : null}
+
+      {showFinalReward ? (
+        <FinalRewardPopup
+          reward={reward}
+          onTryAgain={() => {
+          setShowFinalReward(false);
+          onReset();
+          rotation.value = 0;
+
+        }}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+function FatePopup({
+  reward,
+  onAccept,
+}: {
+  reward: string;
+  onAccept: () => void;
+}) {
+  return (
+    <View style={styles.popupBackdrop}>
+      <View style={styles.fateCard}>
+        <Text style={styles.rewardTitle}>Your Fate!</Text>
+
+        <Text style={styles.rewardText}>{reward}</Text>
+
+        <Text style={styles.rewardHint}>
+          Complete it, then your babe can reveal the surprise gift.
+        </Text>
+
+        <Pressable onPress={onAccept} style={styles.rewardButton}>
+          <Text style={styles.rewardButtonText}>ACCEPT</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function FinalRewardPopup({
+  reward,
+  onTryAgain,
+}: {
+  reward: string;
+  onTryAgain: () => void;
+}) {
+  return (
+    <View style={styles.finalRewardCard}>
+      <Text style={styles.finalRewardKicker}>
+        Your next little adventure begins now.
+      </Text>
+
+      <LinearGradient
+        colors={['rgba(75, 102, 132, 0.82)', 'rgba(31, 66, 99, 0.72)']}
+        style={styles.finalRewardPanel}>
+        <Text style={styles.finalRewardSparkle}>{'\u2726'}</Text>
+
+        <Text style={styles.finalRewardTitle}>
+          Reward Unlocked!
+        </Text>
+
+        <Text style={styles.finalRewardReward}>
+          {reward}
+        </Text>
+      </LinearGradient>
+
+      <Text style={styles.finalRewardCopy}>
+        To be claimed whenever the moment feels just right.
+      </Text>
+
+      <Pressable
+        onPress={onTryAgain}
+        style={styles.finalRewardButton}>
+        <Text style={styles.finalRewardButtonText}>
+          Try Again
+        </Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -1166,6 +1625,429 @@ const styles = StyleSheet.create({
     color: '#8ea4be',
     fontFamily: STORY_FONT_FAMILY,
     fontSize: 10,
+  },
+  scorePill: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(18, 48, 76, 0.82)',
+    borderColor: 'rgba(213, 190, 86, 0.22)',
+    borderRadius: 24,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 11,
+    height: 46,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 18,
+    top: 18,
+    width: 136,
+    zIndex: 7,
+  },
+  scoreLabel: {
+    color: '#d5b64f',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 2,
+  },
+  scoreValue: {
+    color: '#e6c65d',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  wrongCounter: {
+    color: '#7f98b3',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 12,
+    fontWeight: '700',
+    position: 'absolute',
+    right: 34,
+    top: 66,
+    zIndex: 7,
+  },
+  findIntroCard: {
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(23, 54, 85, 0.78)',
+    borderColor: 'rgba(174, 202, 230, 0.16)',
+    borderRadius: 34,
+    borderWidth: 1,
+    marginTop: screenHeight * 0.32,
+    paddingHorizontal: 28,
+    paddingVertical: 34,
+    shadowColor: '#6bbdff',
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    width: Math.min(screenWidth - 54, 388),
+  },
+  findIntroTitle: {
+    color: '#9fb5d4',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+  findIntroCopy: {
+    color: '#c8d1df',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 17,
+    fontWeight: '700',
+    lineHeight: 28,
+    textAlign: 'center',
+  },
+  findRuleLine: {
+    backgroundColor: 'rgba(170, 197, 225, 0.08)',
+    height: 1,
+    marginVertical: 20,
+    width: '100%',
+  },
+  findRulesRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '88%',
+  },
+  findRuleGroup: {
+    alignItems: 'center',
+    gap: 10,
+  },
+  findRuleEmoji: {
+    fontSize: 26,
+  },
+  findRuleGood: {
+    color: '#a8c5ff',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  findRuleBad: {
+    color: '#e19a9a',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  findStartButton: {
+    alignItems: 'center',
+    backgroundColor: '#a8c2ff',
+    borderRadius: 28,
+    height: 62,
+    justifyContent: 'center',
+    shadowColor: '#8fb5ff',
+    shadowOpacity: 0.45,
+    shadowRadius: 18,
+    width: '100%',
+  },
+  findStartText: {
+    color: '#17345f',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 1.4,
+  },
+  gameField: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+    top: 74,
+  },
+  fallingEmojiWrap: {
+    position: 'absolute',
+    top: 0,
+    zIndex: 5,
+  },
+  fallingEmoji: {
+    fontSize: 34,
+    textShadowColor: 'rgba(255,255,255,0.28)',
+    textShadowRadius: 10,
+  },
+  scoreFloat: {
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 18,
+    fontWeight: '800',
+    position: 'absolute',
+    zIndex: 8,
+  },
+  scoreFloatGood: {
+    color: '#d4b24a',
+  },
+  scoreFloatBad: {
+    color: '#e19a9a',
+  },
+  popupBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    backgroundColor: 'rgba(2, 11, 22, 0.72)',
+    justifyContent: 'center',
+    zIndex: 20,
+  },
+  modalBlurTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(132, 160, 190, 0.07)',
+  },
+  tryAgainCard: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(78, 94, 112, 0.68)',
+    borderColor: 'rgba(202, 222, 246, 0.14)',
+    borderRadius: 34,
+    borderWidth: 1,
+    paddingHorizontal: 34,
+    paddingVertical: 36,
+    width: Math.min(screenWidth - 72, 334),
+  },
+  tryAgainHeart: {
+    fontSize: 48,
+    marginBottom: 28,
+  },
+  tryAgainTitle: {
+    color: '#e1e9f7',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 21,
+    fontWeight: '800',
+    lineHeight: 30,
+    textAlign: 'center',
+  },
+  tryAgainSubtitle: {
+    color: '#b8c2d0',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: 20,
+  },
+  tryAgainButton: {
+    alignItems: 'center',
+    backgroundColor: '#a8c2ff',
+    borderRadius: 28,
+    height: 58,
+    justifyContent: 'center',
+    marginTop: 34,
+    width: '100%',
+  },
+  tryAgainButtonText: {
+    color: '#17345f',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 1.3,
+  },
+  wheelTitle: {
+    color: '#f0c941',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 28,
+    fontWeight: '800',
+    position: 'absolute',
+    textAlign: 'center',
+    top: 150,
+    width: '100%',
+  },
+  wheelShell: {
+    alignItems: 'center',
+    height: wheelSize + 72,
+    justifyContent: 'center',
+    marginTop: -92,
+    width: wheelSize + 36,
+  },
+  wheelPointer: {
+    borderLeftColor: 'transparent',
+    borderLeftWidth: 16,
+    borderRightColor: 'transparent',
+    borderRightWidth: 16,
+    borderTopColor: '#f0c941',
+    borderTopWidth: 30,
+    height: 0,
+    position: 'absolute',
+    top: 20,
+    width: 0,
+    zIndex: 7,
+  },
+  wheel: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(12, 39, 67, 0.96)',
+    borderColor: 'rgba(218, 196, 91, 0.36)',
+    borderRadius: wheelSize / 2,
+    borderWidth: 3,
+    height: wheelSize,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    shadowColor: '#6bbdff',
+    shadowOpacity: 0.18,
+    shadowRadius: 28,
+    width: wheelSize,
+  },
+  wheelSegment: {
+    alignItems: 'center',
+    height: wheelSize,
+    justifyContent: 'flex-start',
+    paddingTop: 26,
+    position: 'absolute',
+    width: 92,
+  },
+  wheelSegmentText: {
+    color: '#dfe8f4',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    lineHeight: 13,
+    textAlign: 'center',
+    width: 86,
+  },
+  spinButton: {
+    alignItems: 'center',
+    backgroundColor: '#e8c439',
+    borderRadius: 54,
+    height: 108,
+    justifyContent: 'center',
+    position: 'absolute',
+    shadowColor: '#e8c439',
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    width: 108,
+    zIndex: 6,
+  },
+  spinButtonText: {
+    color: '#3b3212',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 2.2,
+  },
+  fateCard: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(11, 39, 66, 0.9)',
+    borderColor: 'rgba(184, 211, 239, 0.14)',
+    borderRadius: 28,
+    borderWidth: 1,
+    paddingHorizontal: 28,
+    paddingVertical: 30,
+    position: 'absolute',
+    top: screenHeight * 0.38,
+    width: Math.min(screenWidth - 96, 300),
+    zIndex: 10,
+  },
+  rewardTitle: {
+    color: '#f0c941',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 24,
+    fontWeight: '800',
+    marginBottom: 24,
+  },
+  rewardText: {
+    color: '#86c8e6',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 19,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  rewardHint: {
+    color: '#b8c8da',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 18,
+    textAlign: 'center',
+  },
+  rewardButton: {
+    alignItems: 'center',
+    backgroundColor: '#a8c2ff',
+    borderRadius: 24,
+    height: 48,
+    justifyContent: 'center',
+    marginTop: 26,
+    width: 132,
+  },
+  rewardButtonText: {
+    color: '#17345f',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  finalRewardCard: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(7, 32, 57, 0.92)',
+    borderColor: 'rgba(166, 202, 233, 0.18)',
+    borderRadius: 34,
+    borderWidth: 1,
+    paddingHorizontal: 28,
+    paddingVertical: 34,
+    position: 'absolute',
+    shadowColor: '#6bbdff',
+    shadowOpacity: 0.18,
+    shadowRadius: 28,
+    width: Math.min(screenWidth - 46, 382),
+    zIndex: 14,
+  },
+  finalRewardKicker: {
+    color: '#86c8e6',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 19,
+    fontWeight: '800',
+    letterSpacing: 1.1,
+    lineHeight: 28,
+    marginBottom: 28,
+    textAlign: 'center',
+  },
+  finalRewardPanel: {
+    alignItems: 'center',
+    borderColor: 'rgba(236, 210, 91, 0.18)',
+    borderRadius: 8,
+    borderWidth: 1,
+    minHeight: 150,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    width: '86%',
+  },
+  finalRewardSparkle: {
+    color: '#f0c941',
+    fontSize: 34,
+    marginBottom: 12,
+    textShadowColor: '#f0c941',
+    textShadowRadius: 18,
+  },
+  finalRewardTitle: {
+    color: '#f0c941',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 26,
+    fontStyle: 'italic',
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  finalRewardReward: {
+    color: '#dce8f6',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 17,
+    fontWeight: '800',
+    lineHeight: 24,
+    marginTop: 14,
+    textAlign: 'center',
+  },
+  finalRewardCopy: {
+    color: '#c8d1df',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 18,
+    fontWeight: '700',
+    lineHeight: 28,
+    marginTop: 34,
+    textAlign: 'center',
+  },
+  finalRewardButton: {
+    alignItems: 'center',
+    backgroundColor: '#085fbd',
+    borderRadius: 29,
+    height: 58,
+    justifyContent: 'center',
+    marginTop: 34,
+    shadowColor: '#0b7fff',
+    shadowOpacity: 0.5,
+    shadowRadius: 18,
+    width: '100%',
+  },
+  finalRewardButtonText: {
+    color: '#dbeaff',
+    fontFamily: STORY_FONT_FAMILY,
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    textAlign: 'center',
+    textTransform: 'uppercase',
   },
   fallbackWrap: {
     alignItems: 'center',
