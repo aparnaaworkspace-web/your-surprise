@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   },
   paper: {
     backgroundColor: '#fff8ef',
-    borderRadius: 18,
+    borderRadius: 5,
     marginBottom: -40,
     overflow: 'hidden',
     paddingHorizontal: 18,
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     fontFamily: STORY_FONT_FAMILY,
     fontSize: 15,
     lineHeight: 24,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   envelopeBody: {
     alignItems: 'center',

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image, type ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Image, type ImageSourcePropType, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -11,21 +11,38 @@ import Animated, {
 import { useEffect } from 'react';
 
 import { STORY_FONT_FAMILY } from '@/constants/typography';
+import { useAudioPlayer } from 'expo-audio';
+const { width: screenWidth } = Dimensions.get('window');
 
 export function MusicCard({
   imageSource,
+  audioSource,
   title,
   description,
   isPlaying,
   onTogglePlay,
 }: {
   imageSource: ImageSourcePropType;
+  audioSource: any;
   title: string;
   description: string;
   isPlaying: boolean;
   onTogglePlay: () => void;
 }) {
   const spin = useSharedValue(0);
+  const player = useAudioPlayer(audioSource);
+
+  const handlePlay = () => {
+    onTogglePlay();
+  };
+
+  useEffect(() => {
+    if (isPlaying) {
+      player.play();
+    } else {
+      player.pause();
+    }
+  }, [isPlaying]);
 
   useEffect(() => {
     if (isPlaying) {
@@ -42,11 +59,27 @@ export function MusicCard({
 
     cancelAnimation(spin);
   }, [isPlaying, spin]);
+  
+const discStyle = useAnimatedStyle(() => ({
+  transform: [{ rotate: `${spin.value}deg` }],
+}));
 
-  const discStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${spin.value}deg` }],
-  }));
+const offset = useSharedValue(screenWidth);
 
+useEffect(() => {
+  offset.value = withRepeat(
+    withTiming(-100, {
+      duration: 7000,
+      easing: Easing.linear,
+    }),
+    -1,
+    false
+  );
+}, []);
+
+const animatedDescriptionStyle = useAnimatedStyle(() => ({
+  transform: [{ translateX: offset.value }],
+}));
   return (
     <View style={styles.card}>
       <View style={styles.thumbWrap}>
@@ -69,7 +102,7 @@ export function MusicCard({
         </Text>
       </View>
 
-      <Pressable onPress={onTogglePlay} style={styles.playButton}>
+      <Pressable onPress={handlePlay}style={styles.playButton}>
         <Ionicons name={isPlaying ? 'pause' : 'play'} size={22} color="#d9ecff" />
       </Pressable>
     </View>

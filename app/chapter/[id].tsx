@@ -3,16 +3,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Dimensions,
   Image,
   type ImageSourcePropType,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
+  Dimensions,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
@@ -48,15 +48,15 @@ const nightSkyDots = Array.from({ length: 58 }, (_, index) => ({
 const chapterOneLetters = [
   {
     title: 'Your Humor',
-    body: 'Placeholder paragraph. This letter can hold the tiny moments that made laughter feel softer, safer, and strangely like home.',
+    body: "I fell in love somewhere between your silly jokes and my endless laughter. You never even tried, yet you became my favorite reason to smile. Your humor will always be my happiest memory of us.",
   },
   {
     title: 'Your Smile',
-    body: 'Placeholder paragraph. This letter can hold the kind of smile that lingers after the moment passes and keeps glowing in memory.',
+    body: "Every time you smile, something beautiful blooms inside my heart. For a moment, the whole world feels brighter because of you. If peace had a face, it would be your smile.",
   },
   {
     title: 'The Way You Were',
-    body: 'Placeholder paragraph. This letter can hold the quiet details, the gentleness, and the version of you that kept staying with me.',
+    body: "You protected me in ways you never even realized-through midnight stories, little victories, and quiet support. You protected my heart long before either of us realized it. Maybe that's when home quietly became you.",
   },
 ];
 
@@ -65,69 +65,97 @@ const chapterTwoSongs: {
   title: string;
   description: string;
   imageSource: ImageSourcePropType;
+  audioSource: any;
 }[] = [
   {
-    id: 'sundari',
-    title: 'Sundari Kannal Oru Sethi',
-    description: 'Placeholder description for a song that opens like a love letter written in rain.',
-    imageSource: require('../../assets/images/sundari.jpg'),
+    id: 'minnalae',
+    title: 'Minnalae Nee Va',
+    description: 'Your very first musical confession.',
+    imageSource: require('../../assets/images/maymadham.jpg'),
+    audioSource: require('../../assets/audios/minnalae-nee-vanthathenadi.aac'),
   },
   {
     id: 'ninaithu',
     title: 'Ninaithu Ninaithu',
-    description: 'Placeholder description for a song that lingers in the same place where memory learns to ache.',
+    description: 'the same place where memory learns to ache.',
     imageSource: require('../../assets/images/7G.jpg'),
+    audioSource: require('../../assets/audios/ninaithu-ninaithu-paarthen.aac'),
   },
   {
-    id: 'poove',
-    title: 'Poove Sempoove',
-    description: 'Placeholder description for a song that feels like a bloom opening inside a midnight silence.',
-    imageSource: require('../../assets/images/pooveSempoove.jpg'),
-  },
-  {
-    id: 'kudagu',
-    title: 'Kudagu Malai',
-    description: 'Placeholder description for a song that carries mist, distance, and a slow heart behind it.',
-    imageSource: require('../../assets/images/kudagumalai.jpg'),
+    id: 'sundari',
+    title: 'Sundari Kannal Oru Sethi',
+    description: "When fear whispered you'd leave.",
+    imageSource: require('../../assets/images/sundari.jpg'),
+    audioSource: require('../../assets/audios/sundari-kannal-oru-sethi.aac'),
   },
   {
     id: 'pottu',
     title: 'Pottu Vaitha Oru Vatta Nila',
-    description: 'Placeholder description for a song shaped like moonlight touching water in complete stillness.',
+    description: 'The song you sang missing me.',
     imageSource: require('../../assets/images/pottuvaitha.jpg'),
+    audioSource: require('../../assets/audios/pottu-vaitha-oru-vatta-nila.aac'),
   },
   {
-    id: 'minnalae',
-    title: 'Minnalae Nee Va',
-    description: 'Placeholder description for a song that arrives like a sudden flash and leaves the night changed.',
-    imageSource: require('../../assets/images/maymadham.jpg'),
+  id: 'Raasathi',
+  title: 'Raasathi unna kaanatha nenju',
+  description: 'Your heart calling out mine.',
+  imageSource: require('../../assets/images/raasathi.jpg'),
+  audioSource: require('../../assets/audios/raasathi-unna-kaanatha-nenju.aac'),
+  },
+  // {
+  //   id: 'raasavae',
+  //   title: 'Raasavae unna nambi',
+  //   description: 'Our love against the world.',
+  //   imageSource: require('../../assets/images/mudhalmariyathai.jpg'),
+  //   audioSource: require('../../assets/audios/minnalae-nee-vanthathenadi.aac'),
+  // },
+  {
+    id: 'poove',
+    title: 'Poove Sempoove',
+    description: 'Loving you meant letting go.',
+    imageSource: require('../../assets/images/pooveSempoove.jpg'),
+    audioSource: require('../../assets/audios/poove-sempoove.aac'),
+  },
+  {
+    id: 'vellai',
+    title: 'Vellai pura ondru ',
+    description: 'Together, despite our impossible fate.',
+    imageSource: require('../../assets/images/vellaipura.jpg'),
+    audioSource: require('../../assets/audios/vellai-pura-ondru.aac'),
+  },
+  {
+    id: 'kudagu',
+    title: 'Kudagu Malai',
+    description: 'Because forgetting you was impossible.',
+    imageSource: require('../../assets/images/kudagumalai.jpg'),
+    audioSource: require('../../assets/audios/kudagu-malai-kaatril-varum-osai-kekutha.aac'),
   },
 ];
 
 const chapterThreeRows = [
   [
     { id: 'butterfly-1', label: 'Butterfly Park', imageSource: require('../../assets/images/sundari.jpg') },
-    { id: 'wonderla-1', label: 'Wonderla', imageSource: require('../../assets/images/pottuvaitha.jpg') },
-    { id: 'yercaud-1', label: 'Yercaud', imageSource: require('../../assets/images/kudagumalai.jpg') },
-    { id: 'beach-1', label: 'Beach', imageSource: require('../../assets/images/maymadham.jpg') },
+    { id: 'butterfly-1', label: 'Butterfly Park', imageSource: require('../../assets/images/pottuvaitha.jpg') },
+    { id: 'butterfly-1', label: 'Butterfly Park', imageSource: require('../../assets/images/kudagumalai.jpg') },
+    { id: 'butterfly-1', label: 'Butterfly Park', imageSource: require('../../assets/images/maymadham.jpg') },
   ],
   [
-    { id: 'butterfly-2', label: 'Butterfly Park', imageSource: require('../../assets/images/pooveSempoove.jpg') },
+    { id: 'wonderla-2', label: 'Wonderla', imageSource: require('../../assets/images/pooveSempoove.jpg') },
     { id: 'wonderla-2', label: 'Wonderla', imageSource: require('../../assets/images/vellaipura.jpg') },
-    { id: 'yercaud-2', label: 'Yercaud', imageSource: require('../../assets/images/7G.jpg') },
-    { id: 'beach-2', label: 'Beach', imageSource: require('../../assets/images/mudhalmariyathai.jpg') },
+    { id: 'wonderla-2', label: 'Wonderla', imageSource: require('../../assets/images/7G.jpg') },
+    { id: 'wonderla-2', label: 'Wonderla', imageSource: require('../../assets/images/mudhalmariyathai.jpg') },
   ],
   [
-    { id: 'butterfly-3', label: 'Butterfly Park', imageSource: require('../../assets/images/sundari.jpg') },
-    { id: 'wonderla-3', label: 'Wonderla', imageSource: require('../../assets/images/pottuvaitha.jpg') },
+    { id: 'yercaud-3', label: 'Yercaud', imageSource: require('../../assets/images/sundari.jpg') },
+    { id: 'yercaud-3', label: 'Yercaud', imageSource: require('../../assets/images/pottuvaitha.jpg') },
     { id: 'yercaud-3', label: 'Yercaud', imageSource: require('../../assets/images/kudagumalai.jpg') },
-    { id: 'beach-3', label: 'Beach', imageSource: require('../../assets/images/maymadham.jpg') },
+    { id: 'yercaud-3', label: 'Yercaud', imageSource: require('../../assets/images/maymadham.jpg') },
   ],
   [
-    { id: 'butterfly-4', label: 'Butterfly Park', imageSource: require('../../assets/images/pooveSempoove.jpg') },
-    { id: 'wonderla-4', label: 'Wonderla', imageSource: require('../../assets/images/vellaipura.jpg') },
-    { id: 'yercaud-4', label: 'Yercaud', imageSource: require('../../assets/images/7G.jpg') },
-    { id: 'beach-4', label: 'Beach', imageSource: require('../../assets/images/mudhalmariyathai.jpg') },
+    { id: 'beach-4', label: 'Pondicherry Beach', imageSource: require('../../assets/images/pooveSempoove.jpg') },
+    { id: 'beach-4', label: 'Pondicherry Beach', imageSource: require('../../assets/images/vellaipura.jpg') },
+    { id: 'beach-4', label: 'Pondicherry Beach', imageSource: require('../../assets/images/7G.jpg') },
+    { id: 'beach-4', label: 'Pondicherry Beach', imageSource: require('../../assets/images/mudhalmariyathai.jpg') },
   ],
 ];
 
@@ -231,10 +259,12 @@ function WhyIFellScreen() {
     <SafeAreaView style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
       <NightSky />
+      <View style={styles.header}>
       <Pressable onPress={() => router.back()} style={styles.backButton}>
         <Ionicons name="arrow-back" size={28} color="#c9d9ed" />
       </Pressable>
       <Text style={styles.chapterTitle}>Why I Fell</Text>
+      </View>
 
       <ScrollView contentContainerStyle={styles.envelopeList} showsVerticalScrollIndicator={false}>
         {chapterOneLetters.map((letter, index) => (
@@ -261,12 +291,14 @@ function SongsBetweenSilenceScreen() {
     <SafeAreaView style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
       <NightSky />
+      <View style={styles.header}>
       <Pressable onPress={() => router.back()} style={styles.backButton}>
-        <Ionicons name="arrow-back" size={28} color="#c9d9ed" />
+        <Ionicons name="arrow-back" size={24} color="#c9d9ed" />
       </Pressable>
-      <Text style={styles.musicHeader}>Songs Between the Silence</Text>
+      <Text style={styles.chapterTitle}>Songs Between the Silence</Text>
+      </View>
       <Text style={styles.musicIntro}>
-        A collection of echoes, designed for the quietest hours of the night. Where the melody meets the memory.
+        A collection of echoes, designed for the quietest hours of the night.
       </Text>
 
       <ScrollView contentContainerStyle={styles.musicList} showsVerticalScrollIndicator={false}>
@@ -275,8 +307,13 @@ function SongsBetweenSilenceScreen() {
             key={song.id}
             description={song.description}
             imageSource={song.imageSource}
+            audioSource={song.audioSource}
             isPlaying={activeSong === song.id}
-            onTogglePlay={() => setActiveSong((current) => (current === song.id ? null : song.id))}
+            onTogglePlay={() => {
+              setActiveSong((current) =>
+                current === song.id ? null : song.id
+              );
+            }}
             title={song.title}
           />
         ))}
@@ -319,11 +356,12 @@ function MemoriesWeNeverHadScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <NightSky />
       <Animated.View style={[styles.absoluteFill, contentStyle]}>
+        <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={28} color="#c9d9ed" />
         </Pressable>
         <Text style={styles.chapterTitle}>Memories We Never Had</Text>
-
+        </View>
         <ScrollView
           contentContainerStyle={styles.memoryScrollContent}
           showsVerticalScrollIndicator={false}>
@@ -352,7 +390,7 @@ function MemoriesWeNeverHadScreen() {
 }
 
 function LoveThatSurvivedDistanceScreen() {
-  const [activeSong, setActiveSong] = useState<string | null>('distance');
+  const [activeSong, setActiveSong] = useState<string | null>('null');
   const [, setRevealedCards] = useState({
     bond: false,
     missing: false,
@@ -375,10 +413,12 @@ function LoveThatSurvivedDistanceScreen() {
     <SafeAreaView style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
       <NightSky />
+      <View style={styles.header}>
       <Pressable onPress={() => router.back()} style={styles.backButton}>
         <Ionicons name="arrow-back" size={28} color="#c9d9ed" />
       </Pressable>
       <Text style={styles.chapterTitle}>The Love That Survived Distance</Text>
+      </View>
 
       <ScrollView
         contentContainerStyle={styles.dashboardScrollContent}
@@ -420,8 +460,9 @@ function LoveThatSurvivedDistanceScreen() {
             <Text style={styles.dashboardSmallTitle}>Soundtrack for Survival</Text>
           </View>
           <MusicCard
-            description="A night we survived one note at a time."
+            description="Our souls met through melodies."
             imageSource={require('../../assets/images/7G.jpg')}
+            audioSource={require('../../assets/audios/ninaithu-ninaithu-paarthen.aac')}
             isPlaying={activeSong === 'distance'}
             onTogglePlay={() => setActiveSong((current) => (current === 'distance' ? null : 'distance'))}
             title="Ninaithu Ninaithu Parthal"
@@ -557,10 +598,12 @@ function FindMeAgainScreen() {
     <SafeAreaView style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
       <NightSky />
+      <View style={styles.header}>
       <Pressable onPress={() => router.back()} style={styles.backButton}>
         <Ionicons name="arrow-back" size={28} color="#c9d9ed" />
       </Pressable>
       <Text style={styles.chapterTitle}>Find Me Again</Text>
+      </View>
       <View style={styles.scorePill}>
         <Text style={styles.scoreLabel}>SCORE</Text>
         <Text style={styles.scoreValue}>{score}</Text>
@@ -1205,21 +1248,23 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     position: 'absolute',
   },
-  backButton: {
-    left: 8,
-    padding: 10,
+  header: {
     position: 'absolute',
     top: 12,
-    zIndex: 8,
+    left: 8,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  backButton: {
+    padding: 10,
   },
   chapterTitle: {
-    color: '#cfd9eb',
+    marginLeft: 0,
+    color: '#c9d9ed',
     fontFamily: STORY_FONT_FAMILY,
-    fontSize: 18,
-    left: 56,
-    position: 'absolute',
-    top: 24,
-    zIndex: 7,
+    fontSize: 16,
   },
   envelopeList: {
     paddingBottom: 96,
@@ -1227,22 +1272,13 @@ const styles = StyleSheet.create({
     paddingRight: 30,
     paddingTop: 108,
   },
-  musicHeader: {
-    color: '#93a4bb',
-    fontFamily: STORY_FONT_FAMILY,
-    fontSize: 18,
-    left: 56,
-    position: 'absolute',
-    top: 24,
-    zIndex: 7,
-  },
   musicIntro: {
-    color: '#c9d3e1',
+    color: '#d6b85a',
     fontFamily: STORY_FONT_FAMILY,
-    fontSize: 18,
+    fontSize: 16,
     lineHeight: 32,
     marginHorizontal: 28,
-    marginTop: 78,
+    marginTop: 50,
   },
   musicList: {
     gap: 18,
@@ -1384,7 +1420,7 @@ const styles = StyleSheet.create({
     fontFamily: STORY_FONT_FAMILY,
     fontSize: 12,
     fontWeight: '700',
-    marginBottom: 12,
+    marginBottom: 9,
   },
   dashboardSmallTitleCenter: {
     color: '#dce6f4',
