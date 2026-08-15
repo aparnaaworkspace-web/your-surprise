@@ -92,7 +92,9 @@ export function EnvelopeCard({
         <View style={styles.envelopeBody}>
           <Animated.View style={[styles.flap, flapStyle]} />
           <View style={styles.innerShadow} />
-          <View style={styles.seal} />
+          <View style={styles.seal}>
+            <Text style={styles.sealHeart}>♥</Text>
+          </View>
           <Text style={styles.title}>{title}</Text>
         </View>
       </Animated.View>
@@ -123,7 +125,7 @@ const styles = StyleSheet.create({
   },
   envelopeBody: {
     alignItems: 'center',
-    backgroundColor: '#fffaf2',
+    backgroundColor: '#F5DADF',
     borderRadius: 6,
     height: 148,
     overflow: 'hidden',
@@ -134,7 +136,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 160,
     borderRightColor: 'transparent',
     borderRightWidth: 160,
-    borderTopColor: '#f3ebd1',
+    borderTopColor: '#edcbd2',
     borderTopWidth: 78,
     left: 0,
     position: 'absolute',
@@ -156,6 +158,13 @@ const styles = StyleSheet.create({
     top: 53,
     width: 52,
     zIndex: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sealHeart: {
+    color: '#ffd5da',
+    fontSize: 30,
+    lineHeight: 34,
   },
   title: {
     color: '#6f5746',

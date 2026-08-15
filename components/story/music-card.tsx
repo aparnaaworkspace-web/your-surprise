@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Dimensions, Image, type ImageSourcePropType, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, type ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -12,7 +12,6 @@ import { useEffect } from 'react';
 
 import { STORY_FONT_FAMILY } from '@/constants/typography';
 import { useAudioPlayer } from 'expo-audio';
-const { width: screenWidth } = Dimensions.get('window');
 
 export function MusicCard({
   imageSource,
@@ -39,10 +38,10 @@ export function MusicCard({
   useEffect(() => {
     if (isPlaying) {
       player.play();
-    } else {
-      player.pause();
-    }
-  }, [isPlaying]);
+  } else {
+    player.pause();
+  }
+  }, [isPlaying, player]);
 
   useEffect(() => {
     if (isPlaying) {
@@ -64,22 +63,6 @@ const discStyle = useAnimatedStyle(() => ({
   transform: [{ rotate: `${spin.value}deg` }],
 }));
 
-const offset = useSharedValue(screenWidth);
-
-useEffect(() => {
-  offset.value = withRepeat(
-    withTiming(-100, {
-      duration: 7000,
-      easing: Easing.linear,
-    }),
-    -1,
-    false
-  );
-}, []);
-
-const animatedDescriptionStyle = useAnimatedStyle(() => ({
-  transform: [{ translateX: offset.value }],
-}));
   return (
     <View style={styles.card}>
       <View style={styles.thumbWrap}>

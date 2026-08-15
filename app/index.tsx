@@ -1,8 +1,9 @@
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   BackHandler,
   Dimensions,
@@ -83,6 +84,7 @@ export default function StoryEntryScreen() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [homeStep, setHomeStep] = useState<'quote' | 'scene' | 'sky'>('quote');
   const [transitioningChapterId, setTransitioningChapterId] = useState<number | null>(null);
+  const [visitedChapterIds, setVisitedChapterIds] = useState<number[]>([]);
 
   const loginOpacity = useSharedValue(1);
   const homeOpacity = useSharedValue(1);
@@ -103,7 +105,7 @@ export default function StoryEntryScreen() {
     heartPulse.value = withRepeat(withTiming(1.08, { duration: 900 }), -1, true);
   }, [heartPulse]);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       if (!isHome) {
         return false;
@@ -122,11 +124,19 @@ export default function StoryEntryScreen() {
         heartX.value = withSpring(0, { damping: 15, stiffness: 130 });
         heartY.value = withSpring(0, { damping: 15, stiffness: 130 });
       } else if (homeStep === 'scene') {
-        setHomeStep('quote');
+        setIsHome(false);
         setShowScene(false);
+        setIsUnlocked(false);
+        loginOpacity.value = 1;
+        homeOpacity.value = 1;
         camera.value = 0;
         quoteOpacity.value = 1;
-        quoteScale.value = 1;
+        quoteScale.value = 0.96;
+        heartX.value = 0;
+        heartY.value = 0;
+        delivered.value = 0;
+        skyReveal.value = 0;
+        glow.value = 0;
       } else {
         setIsHome(false);
         setShowScene(false);
@@ -160,10 +170,24 @@ export default function StoryEntryScreen() {
     quoteScale,
     skyReveal,
     transitioningChapterId,
-  ]);
+  ]));
 
   useEffect(() => {
     if (!isHome) {
+      return;
+    }
+
+    if (scene === 'sky') {
+      homeOpacity.value = 1;
+      loginOpacity.value = 0;
+      quoteOpacity.value = 0;
+      quoteScale.value = 1;
+      camera.value = 1;
+      skyReveal.value = 1;
+      delivered.value = 1;
+      setHomeStep('sky');
+      setShowScene(true);
+      setIsUnlocked(true);
       return;
     }
 
@@ -193,7 +217,7 @@ export default function StoryEntryScreen() {
     quoteScale.value = 1;
 
     quoteOpacity.value = withDelay(
-      900,
+      1900,
       withTiming(0, {
         duration: 500,
         easing: Easing.inOut(Easing.cubic),
@@ -201,7 +225,7 @@ export default function StoryEntryScreen() {
     );
 
     camera.value = withDelay(
-      900,
+      1900,
       withTiming(1, {
         duration: 600,
         easing: Easing.inOut(Easing.cubic),
@@ -212,7 +236,7 @@ export default function StoryEntryScreen() {
   }, [camera, delivered, heartX, heartY, homeOpacity, isHome, loginOpacity, quoteOpacity, quoteScale, scene, skyReveal]);
 
   useEffect(() => {
-    if (scene !== 'houses') {
+    if (scene !== 'houses' && scene !== 'sky') {
       return;
     }
 
@@ -222,7 +246,6 @@ export default function StoryEntryScreen() {
   const codeDots = useMemo(() => Array.from({ length: 4 }, (_, index) => index), []);
 
   const submitCode = () => {
-    Keyboard.dismiss();
     if (code.trim().toLowerCase() !== SECRET_CODE) {
       setHasError(true);
       triggerErrorHaptic();
@@ -239,6 +262,7 @@ export default function StoryEntryScreen() {
     setHasError(false);
     triggerLightHaptic();
     runOnJS(setIsHome)(true);
+    setTimeout(() => Keyboard.dismiss(), 220);
 
     loginOpacity.value = withTiming(0, {
       duration: 620,
@@ -330,6 +354,7 @@ export default function StoryEntryScreen() {
 
   const startChapterTransition = (chapterId: number) => {
     triggerLightHaptic();
+    setVisitedChapterIds((current) => current.includes(chapterId) ? current : [...current, chapterId]);
     setTransitioningChapterId(chapterId);
   };
 
@@ -373,6 +398,8 @@ export default function StoryEntryScreen() {
           <Animated.View style={[styles.absolute, sceneStyle]}>
             <StreetScene
               heartStyle={heartStyle}
+              heartX={heartX}
+              heartY={heartY}
               panGesture={panGesture}
               delivered={delivered}
               skyReveal={skyReveal}
@@ -383,6 +410,7 @@ export default function StoryEntryScreen() {
             <ChapterSky
               activeChapterId={transitioningChapterId}
               onSelectChapter={startChapterTransition}
+              visitedChapterIds={visitedChapterIds}
             />
           </Animated.View>
 
@@ -390,8 +418,8 @@ export default function StoryEntryScreen() {
             <ChapterTransition
               onComplete={() => {
                 const chapterId = transitioningChapterId;
-                setTransitioningChapterId(null);
                 router.push(`/chapter/${chapterId}` as never);
+                setTimeout(() => setTransitioningChapterId(null), 900);
               }}
               originLeftPercent={chapterStars.find((star) => star.id === transitioningChapterId)?.left ?? 50}
               originTopPercent={chapterStars.find((star) => star.id === transitioningChapterId)?.top ?? 50}
@@ -427,7 +455,10 @@ function LoginScreen({
 }) {
   const inputRef = useRef<TextInput>(null);
   const keyboardProgress = useSharedValue(0);
-  const focusSecretInput = () => inputRef.current?.focus();
+  const focusSecretInput = () => {
+    inputRef.current?.blur();
+    requestAnimationFrame(() => inputRef.current?.focus());
+  };
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
@@ -510,6 +541,7 @@ function LoginScreen({
         style={styles.secretInput}
         autoCapitalize="none"
         autoCorrect={false}
+        showSoftInputOnFocus
         secureTextEntry={false}
       />
         {hasError && <Text style={styles.errorText}>That is not our secret. Try the code in your heart.</Text>}
@@ -551,11 +583,15 @@ function Twinkle({ left, top, size, delay, color }: { left: number; top: number;
 
 function StreetScene({
   heartStyle,
+  heartX,
+  heartY,
   panGesture,
   delivered,
   skyReveal,
 }: {
   heartStyle: object;
+  heartX: SharedValue<number>;
+  heartY: SharedValue<number>;
   panGesture: ReturnType<typeof Gesture.Pan>;
   delivered: SharedValue<number>;
   skyReveal: SharedValue<number>;
@@ -573,6 +609,8 @@ function StreetScene({
       >
     <Rain delivered={delivered} skyReveal={skyReveal} />
 
+      <HeartTrail heartX={heartX} heartY={heartY} skyReveal={skyReveal} />
+
       <GestureDetector gesture={panGesture}>
         <Animated.View style={[styles.heartWrap, heartStyle]}>
           <View style={styles.heartAura} />
@@ -586,6 +624,47 @@ function StreetScene({
       </ImageBackground>
     </View>
   );
+}
+
+function HeartTrail({
+  heartX,
+  heartY,
+  skyReveal,
+}: {
+  heartX: SharedValue<number>;
+  heartY: SharedValue<number>;
+  skyReveal: SharedValue<number>;
+}) {
+  return (
+    <View pointerEvents="none" style={styles.absolute}>
+      {[0, 1, 2, 3, 4].map((index) => (
+        <TrailSpark key={index} heartX={heartX} heartY={heartY} index={index} skyReveal={skyReveal} />
+      ))}
+    </View>
+  );
+}
+
+function TrailSpark({
+  heartX,
+  heartY,
+  index,
+  skyReveal,
+}: {
+  heartX: SharedValue<number>;
+  heartY: SharedValue<number>;
+  index: number;
+  skyReveal: SharedValue<number>;
+}) {
+  const style = useAnimatedStyle(() => ({
+    opacity: interpolate(Math.abs(heartX.value), [0, 18, unlockDistance], [0, 0.78 - index * 0.1, 0.18]),
+    transform: [
+      { translateX: heartX.value - index * 18 },
+      { translateY: heartY.value + Math.sin(index) * 8 },
+      { scale: interpolate(skyReveal.value, [0, 0.4], [1, 0]) },
+    ],
+  }));
+
+  return <Animated.View style={[styles.trailSpark, { bottom: height * 0.28 + 24, left: width * 0.18 + 22 }, style]} />;
 }
 
 function Rain({
@@ -671,9 +750,11 @@ function LegacyChapterSky({
 function ChapterSky({
   activeChapterId,
   onSelectChapter,
+  visitedChapterIds,
 }: {
   activeChapterId: number | null;
   onSelectChapter: (chapterId: number) => void;
+  visitedChapterIds: number[];
 }) {
   return (
     <LinearGradient colors={['#071B33', '#163C69', '#0A2342']} locations={[0, 0.55, 1]} style={styles.chapterSky}>
@@ -683,6 +764,7 @@ function ChapterSky({
       {chapterStars.map((star) => (
         <SkyStar
           activeChapterId={activeChapterId}
+          isVisited={visitedChapterIds.includes(star.id)}
           key={star.id}
           onPress={() => onSelectChapter(star.id)}
           star={star}
@@ -695,10 +777,12 @@ function ChapterSky({
 function SkyStar({
   star,
   activeChapterId,
+  isVisited,
   onPress,
 }: {
   star: { id: number; left: number; top: number };
   activeChapterId: number | null;
+  isVisited: boolean;
   onPress: () => void;
 }) {
   const fade = useSharedValue(activeChapterId === null ? 1 : 0);
@@ -716,13 +800,23 @@ function SkyStar({
     transform: [{ scale: interpolate(fade.value, [0, 1], [0.76, 1]) }],
   }));
 
-  return (
-    <Animated.View style={[styles.chapterStarButton, { left: `${star.left}%`, top: `${star.top}%` }, starStyle]}>
-      <Pressable onPress={onPress} style={styles.chapterStarTouch}>
-        <Text style={styles.chapterStar}>{'\u2726'}</Text>
-      </Pressable>
-    </Animated.View>
-  );
+return (
+  <Animated.View
+    style={[
+      styles.chapterStarButton,
+      { left: `${star.left}%`, top: `${star.top}%` },
+      starStyle,
+    ]}
+  >
+    <Pressable onPress={onPress} style={styles.chapterStarTouch}>
+      {isVisited && <View style={styles.visitedStarGlow} />}
+
+      <Text style={[styles.chapterStar, isVisited && styles.chapterStarVisited]}>
+        {'\u2726'}
+      </Text>
+    </Pressable>
+  </Animated.View>
+);
 }
 
 const styles = StyleSheet.create({
@@ -1263,6 +1357,16 @@ const styles = StyleSheet.create({
     left: 3,
     right: undefined,
   },
+  trailSpark: {
+    backgroundColor: '#f8d65d',
+    borderRadius: 5,
+    height: 9,
+    position: 'absolute',
+    shadowColor: '#f8d65d',
+    shadowOpacity: 0.9,
+    shadowRadius: 12,
+    width: 9,
+  },
   dragText: {
     bottom: 78,
     color: '#d7d9e2',
@@ -1307,4 +1411,22 @@ const styles = StyleSheet.create({
     textShadowColor: '#ffd85d',
     textShadowRadius: 18,
   },
+visitedStarGlow: {
+  position: 'absolute',
+  width: 40,
+  height: 40,
+  borderRadius: 23,
+  backgroundColor: 'rgba(255, 214, 61, 0.28)',
+  shadowColor: '#FFD43B',
+  shadowOpacity: 0.5,
+  shadowRadius: 24,
+  elevation: 12,
+},
+
+chapterStarVisited: {
+  color: '#FFFFFF',
+  textShadowColor: '#FFD43B',
+  textShadowRadius: 32,
+  textShadowOffset: { width: 0, height: 0 },
+},
 });

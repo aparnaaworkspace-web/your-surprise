@@ -16,7 +16,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
+        <Stack screenOptions={{ headerShown: false, animation: 'none', contentStyle: { backgroundColor: '#02070d' } }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="chapter/[id]" />
         </Stack>

@@ -40,7 +40,7 @@ export function ChapterTransition({
 
     const timer = setTimeout(() => {
       onComplete();
-    }, 2600);
+    }, 3600);
 
     return () => clearTimeout(timer);
   }, [onComplete, progress, quoteOpacity]);

@@ -29,8 +29,6 @@ import { getChapter } from '@/components/story/chapter-data';
 import { EnvelopeCard } from '@/components/story/envelope-card';
 import { MusicCard } from '@/components/story/music-card';
 import { STORY_FONT_FAMILY } from '@/constants/typography';
-import { BackHandler } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const PHOTO_CARD_WIDTH = 110;
@@ -134,28 +132,28 @@ const chapterTwoSongs: {
 
 const chapterThreeRows = [
   [
-    { id: 'butterfly-1', label: 'Butterfly Park', imageSource: require('../../assets/images/sundari.jpg') },
-    { id: 'butterfly-1', label: 'Butterfly Park', imageSource: require('../../assets/images/pottuvaitha.jpg') },
-    { id: 'butterfly-1', label: 'Butterfly Park', imageSource: require('../../assets/images/kudagumalai.jpg') },
-    { id: 'butterfly-1', label: 'Butterfly Park', imageSource: require('../../assets/images/maymadham.jpg') },
+    { id: 'butterfly-1', label: 'Butterfly Park', imageSource: require('../../assets/images/butterflypark2.jpeg') },
+    { id: 'butterfly-1', label: 'Butterfly Park', imageSource: require('../../assets/images/butterflypark1.jpeg') },
+    { id: 'butterfly-1', label: 'Butterfly Park', imageSource: require('../../assets/images/butterflypark3.jpeg') },
+    { id: 'butterfly-1', label: 'Butterfly Park', imageSource: require('../../assets/images/butterflypark4.jpeg') },
   ],
   [
-    { id: 'wonderla-2', label: 'Wonderla', imageSource: require('../../assets/images/pooveSempoove.jpg') },
-    { id: 'wonderla-2', label: 'Wonderla', imageSource: require('../../assets/images/vellaipura.jpg') },
-    { id: 'wonderla-2', label: 'Wonderla', imageSource: require('../../assets/images/7G.jpg') },
-    { id: 'wonderla-2', label: 'Wonderla', imageSource: require('../../assets/images/mudhalmariyathai.jpg') },
+    { id: 'wonderla-2', label: 'Wonderla', imageSource: require('../../assets/images/wonderla1.jpg') },
+    { id: 'wonderla-2', label: 'Wonderla', imageSource: require('../../assets/images/wonderla2.jpeg') },
+    { id: 'wonderla-2', label: 'Wonderla', imageSource: require('../../assets/images/wonderla4.jpeg') },
+    { id: 'wonderla-2', label: 'Wonderla', imageSource: require('../../assets/images/wonderla3.jpeg') },
   ],
   [
-    { id: 'yercaud-3', label: 'Yercaud', imageSource: require('../../assets/images/sundari.jpg') },
-    { id: 'yercaud-3', label: 'Yercaud', imageSource: require('../../assets/images/pottuvaitha.jpg') },
-    { id: 'yercaud-3', label: 'Yercaud', imageSource: require('../../assets/images/kudagumalai.jpg') },
-    { id: 'yercaud-3', label: 'Yercaud', imageSource: require('../../assets/images/maymadham.jpg') },
+    { id: 'yercaud-3', label: 'Yercaud', imageSource: require('../../assets/images/yercaud1.jpeg') },
+    { id: 'yercaud-3', label: 'Yercaud', imageSource: require('../../assets/images/yercaud3.jpeg') },
+    { id: 'yercaud-3', label: 'Yercaud', imageSource: require('../../assets/images/yercaud2.jpeg') },
+    { id: 'yercaud-3', label: 'Yercaud', imageSource: require('../../assets/images/yercaud4.jpeg') },
   ],
   [
-    { id: 'beach-4', label: 'Pondicherry Beach', imageSource: require('../../assets/images/pooveSempoove.jpg') },
-    { id: 'beach-4', label: 'Pondicherry Beach', imageSource: require('../../assets/images/vellaipura.jpg') },
-    { id: 'beach-4', label: 'Pondicherry Beach', imageSource: require('../../assets/images/7G.jpg') },
-    { id: 'beach-4', label: 'Pondicherry Beach', imageSource: require('../../assets/images/mudhalmariyathai.jpg') },
+    { id: 'beach-4', label: 'Pondicherry Beach', imageSource: require('../../assets/images/beach1.jpeg') },
+    { id: 'beach-4', label: 'Pondicherry Beach', imageSource: require('../../assets/images/beach2.jpeg') },
+    { id: 'beach-4', label: 'Pondicherry Beach', imageSource: require('../../assets/images/beach3.jpeg') },
+    { id: 'beach-4', label: 'Pondicherry Beach', imageSource: require('../../assets/images/beach4.jpeg') },
   ],
 ];
 
@@ -170,11 +168,13 @@ const waitingCalendarDots = [
   1, 10, 12, 16, 19, 23, 27, 31, 34,
 ];
 
+const goToNavigationSky = () => router.back();
+
 const goodGameEmojis = ['❤️', '🌸', '🎵', '😂'];
 const badGameEmojis = ['⚡', '😡', '😭'];
 const fortuneRewards = [
   '🤗 Free Warm Hug',
-  '☕ You Owe Me a Coffee',
+  '☕ You Owe Me a Magnum',
   '🎵 Sing Our Song',
   '📝 One Poem Please',
   '💃 Dance Together While Drunk',
@@ -236,7 +236,7 @@ export default function ChapterScreen() {
   return (
     <SafeAreaView style={styles.screen}>
       <Stack.Screen options={{ headerShown: false }} />
-      <Pressable onPress={() => router.back()} style={styles.backButton}>
+      <Pressable onPress={goToNavigationSky} style={styles.backButton}>
         <Ionicons name="arrow-back" size={28} color="#c9d9ed" />
       </Pressable>
       <View style={styles.fallbackWrap}>
@@ -260,7 +260,7 @@ function WhyIFellScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <NightSky />
       <View style={styles.header}>
-      <Pressable onPress={() => router.back()} style={styles.backButton}>
+      <Pressable onPress={goToNavigationSky} style={styles.backButton}>
         <Ionicons name="arrow-back" size={28} color="#c9d9ed" />
       </Pressable>
       <Text style={styles.chapterTitle}>Why I Fell</Text>
@@ -292,7 +292,7 @@ function SongsBetweenSilenceScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <NightSky />
       <View style={styles.header}>
-      <Pressable onPress={() => router.back()} style={styles.backButton}>
+      <Pressable onPress={goToNavigationSky} style={styles.backButton}>
         <Ionicons name="arrow-back" size={24} color="#c9d9ed" />
       </Pressable>
       <Text style={styles.chapterTitle}>Songs Between the Silence</Text>
@@ -357,7 +357,7 @@ function MemoriesWeNeverHadScreen() {
       <NightSky />
       <Animated.View style={[styles.absoluteFill, contentStyle]}>
         <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Pressable onPress={goToNavigationSky} style={styles.backButton}>
           <Ionicons name="arrow-back" size={28} color="#c9d9ed" />
         </Pressable>
         <Text style={styles.chapterTitle}>Memories We Never Had</Text>
@@ -414,7 +414,7 @@ function LoveThatSurvivedDistanceScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <NightSky />
       <View style={styles.header}>
-      <Pressable onPress={() => router.back()} style={styles.backButton}>
+      <Pressable onPress={goToNavigationSky} style={styles.backButton}>
         <Ionicons name="arrow-back" size={28} color="#c9d9ed" />
       </Pressable>
       <Text style={styles.chapterTitle}>The Love That Survived Distance</Text>
@@ -502,28 +502,12 @@ function FindMeAgainScreen() {
       setPhase('playing');
     };
 
-    useFocusEffect(
-    useCallback(() => {
-      const onBackPress = () => {
-        router.back(); // Go back to the stars page
-        return true;
-      };
-
-      const subscription = BackHandler.addEventListener(
-        'hardwareBackPress',
-        onBackPress
-      );
-
-      return () => subscription.remove();
-    }, [])
-  );
-
   useEffect(() => {
     if (phase !== 'playing') return;
 
     const timer = setInterval(() => {
-      setSpeedMultiplier((prev) => Math.min(prev + 0.15, 2));
-    }, 4000);
+      setSpeedMultiplier((prev) => Math.min(prev + 0.18, 2.8));
+    }, 3500);
 
     return () => clearInterval(timer);
   }, [phase]);
@@ -534,23 +518,24 @@ function FindMeAgainScreen() {
     }
 
     const spawnTimer = setInterval(() => {
-      const isGood = Math.random() > 0.35;
-      const source = isGood ? goodGameEmojis : badGameEmojis;
-      const emoji = source[Math.floor(Math.random() * source.length)];
-      const id = itemCounter.current + 1;
-      itemCounter.current = id;
+      const spawnCount = speedMultiplier > 1.55 && Math.random() > 0.45 ? 2 : 1;
+      const nextItems = Array.from({ length: spawnCount }, () => {
+        const isGood = Math.random() > 0.35;
+        const source = isGood ? goodGameEmojis : badGameEmojis;
+        const id = itemCounter.current + 1;
+        itemCounter.current = id;
 
-      setFallingItems((current) => [
-        ...current,
-        {
+        return {
           id,
-          emoji,
+          emoji: source[Math.floor(Math.random() * source.length)],
           left: 18 + Math.random() * 64,
           duration: (4300 + Math.random() * 1400) / speedMultiplier,
           points: isGood ? 1 : -1,
-        },
-      ]);
-    }, 720);
+        } satisfies FallingItem;
+      });
+
+      setFallingItems((current) => [...current, ...nextItems]);
+    }, 430);
 
     return () => clearInterval(spawnTimer);
   }, [phase, speedMultiplier]);
@@ -574,7 +559,7 @@ function FindMeAgainScreen() {
     if (item.points === 1) {
       setScore((current) => {
         const nextScore = current + 1;
-        if (nextScore >= 10) {
+        if (nextScore >= 20) {
           setPhase('wheel');
           setFallingItems([]);
         }
@@ -586,7 +571,7 @@ function FindMeAgainScreen() {
     setScore((current) => Math.max(0, current - 1));
     setWrongCount((current) => {
       const nextWrongCount = current + 1;
-      if (nextWrongCount > 5) {
+      if (nextWrongCount >= 10) {
         setPhase('lost');
         setFallingItems([]);
       }
@@ -599,7 +584,7 @@ function FindMeAgainScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <NightSky />
       <View style={styles.header}>
-      <Pressable onPress={() => router.back()} style={styles.backButton}>
+      <Pressable onPress={goToNavigationSky} style={styles.backButton}>
         <Ionicons name="arrow-back" size={28} color="#c9d9ed" />
       </Pressable>
       <Text style={styles.chapterTitle}>Find Me Again</Text>
@@ -609,7 +594,7 @@ function FindMeAgainScreen() {
         <Text style={styles.scoreValue}>{score}</Text>
       </View>
       {phase === 'playing' ? (
-        <Text style={styles.wrongCounter}>misses {wrongCount}/6</Text>
+        <Text style={styles.wrongCounter}>misses {wrongCount}/10</Text>
       ) : null}
 
       {phase === 'intro' ? (
