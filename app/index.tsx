@@ -35,6 +35,7 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getChapter } from '@/components/story/chapter-data';
+import { IntroVideo } from '@/components/story/intro-video';
 import { ChapterTransition } from '@/components/story/chapter-transition';
 import { STORY_FONT_FAMILY } from '@/constants/typography';
 
@@ -82,9 +83,10 @@ export default function StoryEntryScreen() {
   const [isHome, setIsHome] = useState(false);
   const [showScene, setShowScene] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
-  const [homeStep, setHomeStep] = useState<'quote' | 'scene' | 'sky'>('quote');
+  const [homeStep, setHomeStep] = useState<'quote' | 'video' | 'scene' | 'sky'>('quote');
   const [transitioningChapterId, setTransitioningChapterId] = useState<number | null>(null);
   const [visitedChapterIds, setVisitedChapterIds] = useState<number[]>([]);
+  const quoteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loginOpacity = useSharedValue(1);
   const homeOpacity = useSharedValue(1);
@@ -123,7 +125,7 @@ export default function StoryEntryScreen() {
         skyReveal.value = withTiming(0, { duration: 360, easing: Easing.out(Easing.cubic) });
         heartX.value = withSpring(0, { damping: 15, stiffness: 130 });
         heartY.value = withSpring(0, { damping: 15, stiffness: 130 });
-      } else if (homeStep === 'scene') {
+      } else if (homeStep === 'scene' || homeStep === 'video') {
         setIsHome(false);
         setShowScene(false);
         setIsUnlocked(false);
@@ -207,9 +209,14 @@ export default function StoryEntryScreen() {
       return;
     }
 
+    if (quoteTimerRef.current) {
+      clearTimeout(quoteTimerRef.current);
+      quoteTimerRef.current = null;
+    }
+
     homeOpacity.value = 1;
     setHomeStep('quote');
-    setShowScene(true);
+    setShowScene(false);
     camera.value = 0;
     skyReveal.value = 0;
     delivered.value = 0;
@@ -224,15 +231,16 @@ export default function StoryEntryScreen() {
       })
     );
 
-    camera.value = withDelay(
-      1900,
-      withTiming(1, {
-        duration: 600,
-        easing: Easing.inOut(Easing.cubic),
-      }, () => {
-        runOnJS(setHomeStep)('scene');
-      })
-    );
+    quoteTimerRef.current = setTimeout(() => {
+      setHomeStep('video');
+    }, 1900);
+
+    return () => {
+      if (quoteTimerRef.current) {
+        clearTimeout(quoteTimerRef.current);
+        quoteTimerRef.current = null;
+      }
+    };
   }, [camera, delivered, heartX, heartY, homeOpacity, isHome, loginOpacity, quoteOpacity, quoteScale, scene, skyReveal]);
 
   useEffect(() => {
@@ -326,10 +334,6 @@ export default function StoryEntryScreen() {
     transform: [{ scale: quoteScale.value }],
   }));
 
-  const journeyStyle = useAnimatedStyle(() => ({
-    opacity: 0,
-  }));
-
   const sceneStyle = useAnimatedStyle(() => ({
     opacity: interpolate(camera.value, [0, 1], [0, 1]),
     transform: [
@@ -393,7 +397,18 @@ export default function StoryEntryScreen() {
             </Text>
           </Animated.View>
 
-          <Animated.View pointerEvents="none" style={[styles.cosmicJourney, journeyStyle]} />
+          {homeStep === 'video' && (
+            <IntroVideo
+              onComplete={() => {
+                setShowScene(true);
+                setHomeStep('scene');
+                camera.value = withTiming(1, {
+                  duration: 620,
+                  easing: Easing.inOut(Easing.cubic),
+                });
+              }}
+            />
+          )}
 
           <Animated.View style={[styles.absolute, sceneStyle]}>
             <StreetScene
