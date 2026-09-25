@@ -66,18 +66,18 @@ const chapterTwoSongs: {
   audioSource: any;
 }[] = [
   {
-    id: 'minnalae',
-    title: 'Minnalae Nee Va',
-    description: 'Your very first musical confession.',
-    imageSource: require('../../assets/images/maymadham.jpg'),
-    audioSource: require('../../assets/audios/minnalae-nee-vanthathenadi.aac'),
-  },
-  {
     id: 'ninaithu',
     title: 'Ninaithu Ninaithu',
     description: 'the same place where memory learns to ache.',
     imageSource: require('../../assets/images/7G.jpg'),
     audioSource: require('../../assets/audios/ninaithu-ninaithu-paarthen.aac'),
+  },
+  {
+    id: 'minnalae',
+    title: 'Minnalae Nee Va',
+    description: 'Your very first musical confession.',
+    imageSource: require('../../assets/images/maymadham.jpg'),
+    audioSource: require('../../assets/audios/minnalae-nee-vanthathenadi.aac'),
   },
   {
     id: 'sundari',
@@ -100,13 +100,13 @@ const chapterTwoSongs: {
   imageSource: require('../../assets/images/raasathi.jpg'),
   audioSource: require('../../assets/audios/raasathi-unna-kaanatha-nenju.aac'),
   },
-  // {
-  //   id: 'raasavae',
-  //   title: 'Raasavae unna nambi',
-  //   description: 'Our love against the world.',
-  //   imageSource: require('../../assets/images/mudhalmariyathai.jpg'),
-  //   audioSource: require('../../assets/audios/minnalae-nee-vanthathenadi.aac'),
-  // },
+  {
+    id: 'raasavae',
+    title: 'Raasavae unna nambi',
+    description: 'Our love against the world.',
+    imageSource: require('../../assets/images/mudhalmariyathai.jpg'),
+    audioSource: require('../../assets/audios/raasavae-unna-nambi.aac'),
+  },
   {
     id: 'poove',
     title: 'Poove Sempoove',
